@@ -153,24 +153,34 @@ def retrieve_emails_by_ids(email_ids):
         if not conversation_messages:
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
-        # Sort by sentDateTime
-        conversation_messages.sort(key=lambda m: m.get("sentDateTime", ""))
-        # Optionally exclude the original message
-        if exclude_original:
-            conversation_messages = [m for m in conversation_messages if m.get("id") != email_id]
-        # Prepare output
+        # Combine the original email and all conversation messages, remove duplicates by ID, and sort by receivedDateTime
+        orig_id = str(email_data.get("id")).lower()
+        # Build a dict to deduplicate by ID
+        msg_dict = {orig_id: {
+            "id": email_data.get("id"),
+            "subject": email_data.get("subject", "No Subject"),
+            "from": email_data.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
+            "receivedDateTime": email_data.get("receivedDateTime"),
+            "hasAttachments": email_data.get("hasAttachments", False),
+            "bodyPreview": (email_data.get("bodyPreview", "")[:100] + "..." if email_data.get("bodyPreview") else "No preview"),
+            "conversationId": email_data.get("conversationId")
+        }}
         for msg in conversation_messages:
-            email_info = {
-                "id": msg.get("id"),
-                "subject": msg.get("subject", "No Subject"),
-                "from": msg.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
-                "receivedDateTime": msg.get("receivedDateTime"),
-                "hasAttachments": msg.get("hasAttachments", False),
-                "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
-                "conversationId": msg.get("conversationId")
-            }
-            all_conversation_emails.append(email_info)
-        print(f"✓ Retrieved {len(conversation_messages)} message(s) in conversation.")
+            msg_id = str(msg.get("id")).lower()
+            if msg_id not in msg_dict:
+                msg_dict[msg_id] = {
+                    "id": msg.get("id"),
+                    "subject": msg.get("subject", "No Subject"),
+                    "from": msg.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
+                    "receivedDateTime": msg.get("receivedDateTime"),
+                    "hasAttachments": msg.get("hasAttachments", False),
+                    "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
+                    "conversationId": msg.get("conversationId")
+                }
+        # Sort all messages by receivedDateTime
+        output_msgs = sorted(msg_dict.values(), key=lambda m: m.get("receivedDateTime", ""))
+        all_conversation_emails.extend(output_msgs)
+        print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation.")
     print("\n============================================================")
     print("Retrieval Summary")
     print("============================================================")
@@ -207,12 +217,12 @@ def main():
         return
     
     emails = retrieve_emails_by_ids(email_ids)
-    
-    if emails:
-        print("\n============================================================")
-        print("Full Email Data (JSON)")
-        print("============================================================")
-        print(json.dumps(emails, indent=2, ensure_ascii=False))
+    # Remove JSON output section
+    # if emails:
+    #     print("\n============================================================")
+    #     print("Full Email Data (JSON)")
+    #     print("============================================================")
+    #     print(json.dumps(emails, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     main() 
