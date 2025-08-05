@@ -43,9 +43,32 @@ def get_email_by_id(email_id, headers):
     url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}"
     
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
+        print(f"[DEBUG] Requesting email: {url}")
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            print(f"Error: Email with ID '{email_id}' not found (404)")
+            print(f"Possible reasons: Email was deleted, ID is invalid, or email is in a different mailbox")
+            return None
+        elif response.status_code == 400:
+            print(f"Error: Bad request for email ID '{email_id}' (400)")
+            print(f"Response: {response.text}")
+            print(f"Possible reasons: Invalid email ID format, ID contains special characters, or ID is malformed")
+            return None
+        elif response.status_code == 403:
+            print(f"Error: Access denied for email ID '{email_id}' (403)")
+            print(f"Possible reasons: Insufficient permissions or email is in a different mailbox")
+            return None
+        else:
+            print(f"Error retrieving email {email_id}: HTTP {response.status_code}")
+            print(f"Response: {response.text}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        print(f"Error: Timeout while retrieving email {email_id}")
+        return None
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving email {email_id}: {e}")
         return None
@@ -54,11 +77,12 @@ def get_conversation_messages(conversation_id, headers):
     from urllib.parse import quote
     import time
     base_url = "https://graph.microsoft.com/v1.0"
+    
     # 1. Try $search (if enabled)
     search_url = f"{base_url}/me/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
-        response = requests.get(search_url, headers=headers)
+        response = requests.get(search_url, headers=headers, timeout=30)
         if response.status_code == 200:
             messages = response.json().get("value", [])
             if messages:
@@ -70,14 +94,15 @@ def get_conversation_messages(conversation_id, headers):
             print(f"[DEBUG] Status {response.status_code}: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
-    # 2. Try msgfolderroot (AllItems)
+    
+    # 2. Try msgfolderroot (AllItems) with smaller limit
     allitems_url = (
         f"{base_url}/me/mailFolders/msgfolderroot/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
     try:
-        response = requests.get(allitems_url, headers=headers)
+        response = requests.get(allitems_url, headers=headers, timeout=30)
         if response.status_code == 200:
             messages = response.json().get("value", [])
             if messages:
@@ -89,48 +114,99 @@ def get_conversation_messages(conversation_id, headers):
             print(f"[DEBUG] Status {response.status_code}: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
-    # 3. Fallback: Fetch all messages and filter client-side (paginated)
-    print(f"[DEBUG] Fetching all messages and filtering client-side. This may take a while...")
+    
+    # 3. Try inbox with smaller limit
+    inbox_url = (
+        f"{base_url}/me/mailFolders/inbox/messages?"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
+    )
+    print(f"[DEBUG] Requesting (inbox): {inbox_url}")
+    try:
+        response = requests.get(inbox_url, headers=headers, timeout=30)
+        if response.status_code == 200:
+            messages = response.json().get("value", [])
+            if messages:
+                print(f"[DEBUG] Found {len(messages)} messages in inbox.")
+                return messages
+            else:
+                print(f"[DEBUG] No messages found in inbox for conversationId: {conversation_id}")
+        else:
+            print(f"[DEBUG] Status {response.status_code}: {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
+    
+    # 4. Limited fallback: Fetch recent messages only (max 1000)
+    print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/me/messages?$top=100"
-    while next_url:
-        print(f"[DEBUG] Requesting (all): {next_url}")
+    next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
+    message_count = 0
+    max_messages = 1000  # Limit to prevent excessive API calls
+    
+    while next_url and message_count < max_messages:
+        print(f"[DEBUG] Requesting (limited): {next_url}")
         try:
-            response = requests.get(next_url, headers=headers)
+            response = requests.get(next_url, headers=headers, timeout=30)
             if response.status_code == 200:
                 data = response.json()
                 batch = data.get("value", [])
                 filtered = [m for m in batch if m.get("conversationId") == conversation_id]
                 all_msgs.extend(filtered)
+                message_count += len(batch)
                 next_url = data.get("@odata.nextLink")
                 if next_url:
-                    time.sleep(0.2)  # Be gentle to avoid throttling
+                    time.sleep(0.1)  # Reduced delay
             else:
                 print(f"[DEBUG] Status {response.status_code}: {response.text}")
                 break
         except requests.exceptions.RequestException as e:
-            print(f"Error retrieving all messages for client-side filtering: {e}")
+            print(f"Error retrieving messages for client-side filtering: {e}")
             break
+    
     if all_msgs:
-        print(f"[DEBUG] Found {len(all_msgs)} messages by client-side filtering.")
+        print(f"[DEBUG] Found {len(all_msgs)} messages by limited fallback (searched {message_count} recent messages).")
         all_msgs.sort(key=lambda m: m.get("sentDateTime", ""))
         return all_msgs
+    
     print(f"[DEBUG] All attempts failed for conversationId: {conversation_id}")
+    print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def retrieve_emails_by_ids(email_ids):
+def get_recent_email_ids(headers, limit=10):
+    """Helper function to get recent email IDs for testing"""
+    url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
+    
+    try:
+        print(f"[DEBUG] Getting recent email IDs...")
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            emails = response.json().get("value", [])
+            print(f"\nRecent {len(emails)} emails (use these IDs for testing):")
+            print("=" * 80)
+            for i, email in enumerate(emails, 1):
+                subject = email.get("subject", "No Subject")
+                sender = email.get("from", {}).get("emailAddress", {}).get("address", "Unknown")
+                date = email.get("receivedDateTime", "Unknown")
+                email_id = email.get("id", "No ID")
+                print(f"{i}. ID: {email_id}")
+                print(f"   Subject: {subject}")
+                print(f"   From: {sender}")
+                print(f"   Date: {date}")
+                print()
+            return [email.get("id") for email in emails]
+        else:
+            print(f"Error getting recent emails: HTTP {response.status_code}")
+            print(f"Response: {response.text}")
+            return []
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting recent emails: {e}")
+        return []
+
+def retrieve_emails_by_ids(email_ids, headers):
     print("============================================================")
     print("Email ID Retriever (with Conversation Thread)")
     print("============================================================")
-    
-    access_token = get_access_token()
-    if not access_token:
-        return []
-    
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
     
     exclude_original = None
     while exclude_original not in ("y", "n"):
@@ -203,6 +279,23 @@ def main():
     print("============================================================")
     print("Email ID Retriever")
     print("============================================================")
+    
+    # First, get access token
+    access_token = get_access_token()
+    if not access_token:
+        return
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    
+    # Offer to show recent emails for testing
+    show_recent = input("Would you like to see recent email IDs for testing? (y/n): ").strip().lower()
+    if show_recent == 'y':
+        get_recent_email_ids(headers, 5)
+        print()
+    
     print("Enter email IDs (one per line, press Enter twice when done):")
     
     email_ids = []
@@ -216,13 +309,14 @@ def main():
         print("No email IDs provided.")
         return
     
-    emails = retrieve_emails_by_ids(email_ids)
-    # Remove JSON output section
-    # if emails:
-    #     print("\n============================================================")
-    #     print("Full Email Data (JSON)")
-    #     print("============================================================")
-    #     print(json.dumps(emails, indent=2, ensure_ascii=False))
+    emails = retrieve_emails_by_ids(email_ids, headers)
+    
+    # If no emails found, offer to show recent emails again
+    if not emails:
+        print("\nNo emails were retrieved. Would you like to see recent email IDs to try again? (y/n): ", end="")
+        retry = input().strip().lower()
+        if retry == 'y':
+            get_recent_email_ids(headers, 10)
 
 if __name__ == "__main__":
     main() 

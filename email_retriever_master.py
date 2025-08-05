@@ -1,11 +1,26 @@
 import os
 import sys
-from email_by_id_retriever import retrieve_emails_by_ids
+from email_by_id_retriever import retrieve_emails_by_ids, get_access_token
 from email_by_sender_date_retriever import retrieve_emails_by_sender_date
 from email_date_range_retriever import retrieve_emails_by_date_range
 from email_subject_date_range_retriever import retrieve_emails_by_subject_date_range
 
 def main():
+    print("============================================================")
+    print("Email Retriever Master Tool")
+    print("============================================================")
+    
+    # Get authentication token once
+    access_token = get_access_token()
+    if not access_token:
+        print("Authentication failed. Exiting...")
+        return
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    
     while True:
         print("============================================================")
         print("Email Retriever Master Tool")
@@ -33,7 +48,7 @@ def main():
                 email_ids.append(email_id)
             
             if email_ids:
-                retrieve_emails_by_ids(email_ids)
+                retrieve_emails_by_ids(email_ids, headers)
             else:
                 print("No email IDs provided.")
         
@@ -52,7 +67,7 @@ def main():
                 print("Error: Date is required")
                 continue
             
-            retrieve_emails_by_sender_date(sender, date)
+            retrieve_emails_by_sender_date(sender, date, headers)
         
         elif choice == "3":
             print("\n" + "="*60)
@@ -69,7 +84,7 @@ def main():
                 print("Error: End date is required")
                 continue
             
-            retrieve_emails_by_date_range(start_date, end_date)
+            retrieve_emails_by_date_range(start_date, end_date, headers)
         
         elif choice == "4":
             print("\n" + "="*60)
@@ -91,7 +106,7 @@ def main():
                 print("Error: End date is required")
                 continue
             
-            retrieve_emails_by_subject_date_range(subject, start_date, end_date)
+            retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers)
         
         elif choice == "5":
             print("Exiting...")
