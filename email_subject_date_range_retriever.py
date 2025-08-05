@@ -54,7 +54,7 @@ def search_emails_by_subject_date_range(subject, start_date, end_date, headers):
     date_filter = f"receivedDateTime ge {start_datetime} and receivedDateTime le {end_datetime}"
     filter_query = f"{subject_filter} and {date_filter}"
     
-    url = f"https://graph.microsoft.com/v1.0/me/messages?$filter={filter_query}&$orderby=receivedDateTime desc&$top=1000"
+    url = f"https://graph.microsoft.com/v1.0/me/messages?$filter={filter_query}&$orderby=receivedDateTime desc&$top=10"
     
     all_emails = []
     
