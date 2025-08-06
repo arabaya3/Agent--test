@@ -5,6 +5,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import msal
 from urllib.parse import quote
+import time
+from shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
@@ -107,7 +109,7 @@ def get_conversation_messages(conversation_id, headers):
     all_msgs = []
     next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 1000  # Limit to prevent excessive API calls
+    max_messages = 100  # Limit to 100 messages only
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -138,71 +140,35 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def search_emails_by_subject_date_range(subject, start_date, end_date, headers):
+def search_emails_by_subject_and_date_range(subject, start_date, end_date, headers, email_ids):
     try:
         start_obj = datetime.strptime(start_date, "%Y-%m-%d")
         end_obj = datetime.strptime(end_date, "%Y-%m-%d")
-        
         start_datetime = start_obj.strftime("%Y-%m-%dT00:00:00Z")
         end_datetime = end_obj.strftime("%Y-%m-%dT23:59:59Z")
     except ValueError:
         print("Error: Dates must be in YYYY-MM-DD format")
         return []
     
-    # Use client-side filtering to avoid InefficientFilter errors
-    print(f"[DEBUG] Fetching recent emails and filtering client-side...")
-    all_emails = []
-    next_url = "https://graph.microsoft.com/v1.0/me/messages?$top=100&$orderby=receivedDateTime desc"
-    message_count = 0
-    max_messages = 2000  # Limit to prevent excessive API calls
-    
-    while next_url and message_count < max_messages:
-        try:
-            print(f"[DEBUG] Fetching batch {message_count//100 + 1}...")
-            response = requests.get(next_url, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                data = response.json()
-                batch = data.get("value", [])
-                all_emails.extend(batch)
-                message_count += len(batch)
-                next_url = data.get("@odata.nextLink")
-                
-                print(f"[DEBUG] Retrieved {len(batch)} emails (Total: {len(all_emails)})")
-                
-                # Check if we have enough emails to cover the date range
-                if batch:
-                    earliest_date = batch[-1].get("receivedDateTime", "")
-                    if earliest_date < start_datetime:
-                        print(f"[DEBUG] Reached emails older than search date range. Stopping search.")
-                        break
-            else:
-                print(f"[DEBUG] Failed to fetch emails: {response.status_code}")
-                print(f"[DEBUG] Response: {response.text}")
-                break
-                
-        except requests.exceptions.RequestException as e:
-            print(f"[DEBUG] Error fetching emails: {e}")
-            break
-    
-    # Filter emails by subject and date
-    print(f"[DEBUG] Filtering {len(all_emails)} emails by subject '{subject}' and date range '{start_date}' to '{end_date}'...")
     filtered_emails = []
-    
-    for email in all_emails:
-        email_subject = email.get("subject", "")
-        email_date = email.get("receivedDateTime", "")
-        
-        # Check if subject contains the keyword (case-insensitive)
-        if subject.lower() in email_subject.lower():
-            # Check if date is in range
-            if start_datetime <= email_date <= end_datetime:
-                filtered_emails.append(email)
-    
-    print(f"[DEBUG] Found {len(filtered_emails)} emails matching criteria")
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                email = response.json()
+                email_date = email.get("receivedDateTime", "")
+                email_subject = email.get("subject", "")
+                if start_datetime <= email_date <= end_datetime and subject.lower() in email_subject.lower():
+                    filtered_emails.append(email)
+            else:
+                continue
+        except Exception:
+            continue
+    print(f"[DEBUG] Found {len(filtered_emails)} emails matching subject and date from {len(email_ids)} recent emails.")
     return filtered_emails
 
-def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers):
+def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers, email_ids):
     print("============================================================")
     print("Email Subject-Date Range Retriever (with Conversation Thread)")
     print("============================================================")
@@ -210,7 +176,7 @@ def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers
     print(f"Date range: {start_date} to {end_date}")
     print("============================================================")
     
-    emails = search_emails_by_subject_date_range(subject, start_date, end_date, headers)
+    emails = search_emails_by_subject_and_date_range(subject, start_date, end_date, headers, email_ids)
     
     if not emails:
         print("No emails found matching the criteria.")
@@ -289,18 +255,23 @@ def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers
 
 def main():
     print("============================================================")
-    print("Email Subject-Date Range Retriever")
+    print("Email Subject Date Range Retriever")
     print("============================================================")
     
-    # First, get access token
     access_token = get_access_token()
     if not access_token:
         return
-    
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
+    try:
+        limit = int(input("How many recent emails do you want to fetch? (1-100, default 100): ").strip() or 100)
+    except ValueError:
+        limit = 100
+    limit = min(max(1, limit), 100)
+    fetch_last_email_ids(headers, limit=limit)
+    email_ids = get_cached_email_ids(limit=limit)
     
     subject = input("Enter subject keyword to search: ").strip()
     if not subject:
@@ -317,7 +288,7 @@ def main():
         print("Error: End date is required")
         return
     
-    emails = retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers)
+    emails = retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers, email_ids)
 
 if __name__ == "__main__":
     main() 

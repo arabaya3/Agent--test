@@ -1,9 +1,12 @@
 import os
 import requests
 import json
+from datetime import datetime
 from dotenv import load_dotenv
 import msal
 from urllib.parse import quote
+import time
+from shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
@@ -140,7 +143,7 @@ def get_conversation_messages(conversation_id, headers):
     all_msgs = []
     next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 1000  # Limit to prevent excessive API calls
+    max_messages = 100  # Limit to 100 messages only
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -202,6 +205,19 @@ def get_recent_email_ids(headers, limit=10):
     except requests.exceptions.RequestException as e:
         print(f"Error getting recent emails: {e}")
         return []
+
+def search_emails_by_id(headers, email_ids):
+    emails = []
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                emails.append(response.json())
+        except Exception:
+            continue
+    print(f"[DEBUG] Found {len(emails)} emails from {len(email_ids)} recent emails.")
+    return emails
 
 def retrieve_emails_by_ids(email_ids, headers):
     print("============================================================")
@@ -277,39 +293,58 @@ def retrieve_emails_by_ids(email_ids, headers):
 
 def main():
     print("============================================================")
-    print("Email ID Retriever")
+    print("Email By ID Retriever")
     print("============================================================")
     
-    # First, get access token
     access_token = get_access_token()
     if not access_token:
         return
-    
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    
-    # Offer to show recent emails for testing
-    show_recent = input("Would you like to see recent email IDs for testing? (y/n): ").strip().lower()
-    if show_recent == 'y':
-        get_recent_email_ids(headers, 5)
-        print()
-    
-    print("Enter email IDs (one per line, press Enter twice when done):")
-    
-    email_ids = []
-    while True:
-        email_id = input().strip()
-        if not email_id:
-            break
-        email_ids.append(email_id)
-    
-    if not email_ids:
-        print("No email IDs provided.")
+    try:
+        limit = int(input("How many recent emails do you want to fetch? (1-100, default 100): ").strip() or 100)
+    except ValueError:
+        limit = 100
+    limit = min(max(1, limit), 100)
+    fetch_last_email_ids(headers, limit=limit)
+    email_ids = get_cached_email_ids(limit=limit)
+    # Fetch subjects for the recent emails
+    emails_info = []
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                emails_info.append({"id": data.get("id"), "subject": data.get("subject", "No Subject")})
+        except Exception:
+            continue
+    if not emails_info:
+        print("No recent emails found.")
         return
-    
-    emails = retrieve_emails_by_ids(email_ids, headers)
+    print("\nRecent Emails:")
+    print("============================================================")
+    for idx, info in enumerate(emails_info, 1):
+        print(f"{idx}. ID: {info['id']}")
+        print(f"   Subject: {info['subject']}")
+    print("============================================================")
+    print("Enter the numbers of the emails you want to retrieve (comma-separated, e.g., 1,3,5): ", end="")
+    selected = input().strip()
+    if not selected:
+        print("No selection made.")
+        return
+    try:
+        selected_indices = [int(x.strip()) for x in selected.split(",") if x.strip().isdigit()]
+    except Exception:
+        print("Invalid input.")
+        return
+    selected_ids = [emails_info[i-1]["id"] for i in selected_indices if 1 <= i <= len(emails_info)]
+    if not selected_ids:
+        print("No valid email numbers selected.")
+        return
+    emails = retrieve_emails_by_ids(selected_ids, headers)
     
     # If no emails found, offer to show recent emails again
     if not emails:

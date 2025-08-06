@@ -5,6 +5,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import msal
 from urllib.parse import quote
+import time
+from shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
@@ -107,7 +109,7 @@ def get_conversation_messages(conversation_id, headers):
     all_msgs = []
     next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 1000  # Limit to prevent excessive API calls
+    max_messages = 100  # Limit to 100 messages only
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -138,66 +140,32 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def search_emails_by_sender_date(sender, date, headers):
+def search_emails_by_sender_and_date_range(sender, start_date, end_date, headers, email_ids):
     try:
-        date_obj = datetime.strptime(date, "%Y-%m-%d")
-        start_date = date_obj.strftime("%Y-%m-%dT00:00:00Z")
-        end_date = date_obj.strftime("%Y-%m-%dT23:59:59Z")
+        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        end_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        start_datetime = start_obj.strftime("%Y-%m-%dT00:00:00Z")
+        end_datetime = end_obj.strftime("%Y-%m-%dT23:59:59Z")
     except ValueError:
-        print("Error: Date must be in YYYY-MM-DD format")
+        print("Error: Dates must be in YYYY-MM-DD format")
         return []
     
-    # Use client-side filtering to avoid InefficientFilter errors
-    print(f"[DEBUG] Fetching recent emails and filtering client-side...")
-    all_emails = []
-    next_url = "https://graph.microsoft.com/v1.0/me/messages?$top=100&$orderby=receivedDateTime desc"
-    message_count = 0
-    max_messages = 2000  # Limit to prevent excessive API calls
-    
-    while next_url and message_count < max_messages:
-        try:
-            print(f"[DEBUG] Fetching batch {message_count//100 + 1}...")
-            response = requests.get(next_url, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                data = response.json()
-                batch = data.get("value", [])
-                all_emails.extend(batch)
-                message_count += len(batch)
-                next_url = data.get("@odata.nextLink")
-                
-                print(f"[DEBUG] Retrieved {len(batch)} emails (Total: {len(all_emails)})")
-                
-                # Check if we have enough emails to cover the date range
-                if batch:
-                    earliest_date = batch[-1].get("receivedDateTime", "")
-                    if earliest_date < start_date:
-                        print(f"[DEBUG] Reached emails older than search date. Stopping search.")
-                        break
-            else:
-                print(f"[DEBUG] Failed to fetch emails: {response.status_code}")
-                print(f"[DEBUG] Response: {response.text}")
-                break
-                
-        except requests.exceptions.RequestException as e:
-            print(f"[DEBUG] Error fetching emails: {e}")
-            break
-    
-    # Filter emails by sender and date
-    print(f"[DEBUG] Filtering {len(all_emails)} emails by sender '{sender}' and date '{date}'...")
     filtered_emails = []
-    
-    for email in all_emails:
-        email_sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
-        email_date = email.get("receivedDateTime", "")
-        
-        # Check if sender matches (case-insensitive)
-        if email_sender.lower() == sender.lower():
-            # Check if date is in range
-            if start_date <= email_date <= end_date:
-                filtered_emails.append(email)
-    
-    print(f"[DEBUG] Found {len(filtered_emails)} emails matching criteria")
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                email = response.json()
+                email_date = email.get("receivedDateTime", "")
+                email_sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
+                if start_datetime <= email_date <= end_datetime and sender.lower() in email_sender.lower():
+                    filtered_emails.append(email)
+            else:
+                continue
+        except Exception:
+            continue
+    print(f"[DEBUG] Found {len(filtered_emails)} emails matching sender and date from {len(email_ids)} recent emails.")
     return filtered_emails
 
 def retrieve_emails_by_sender_date(sender, date, headers):
@@ -287,30 +255,27 @@ def retrieve_emails_by_sender_date(sender, date, headers):
 
 def main():
     print("============================================================")
-    print("Email Sender-Date Retriever")
+    print("Email By Sender Date Retriever")
     print("============================================================")
     
-    # First, get access token
     access_token = get_access_token()
     if not access_token:
         return
-    
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    
-    sender = input("Enter sender email address: ").strip()
-    if not sender:
-        print("Error: Sender email is required")
-        return
-    
-    date = input("Enter date (YYYY-MM-DD): ").strip()
-    if not date:
-        print("Error: Date is required")
-        return
-    
-    emails = retrieve_emails_by_sender_date(sender, date, headers)
+    try:
+        limit = int(input("How many recent emails do you want to fetch? (1-100, default 100): ").strip() or 100)
+    except ValueError:
+        limit = 100
+    limit = min(max(1, limit), 100)
+    fetch_last_email_ids(headers, limit=limit)
+    email_ids = get_cached_email_ids(limit=limit)
+    sender = input("Enter sender email to search for: ").strip()
+    start_date = input("Enter start date (YYYY-MM-DD): ").strip()
+    end_date = input("Enter end date (YYYY-MM-DD): ").strip()
+    emails = search_emails_by_sender_and_date_range(sender, start_date, end_date, headers, email_ids)
 
 if __name__ == "__main__":
     main() 
