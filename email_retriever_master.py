@@ -113,7 +113,7 @@ def main():
                 print("Error: End date is required")
                 continue
             
-            retrieve_emails_by_date_range(start_date, end_date, headers)
+            retrieve_emails_by_date_range(start_date, end_date, headers, email_ids)
         
         elif choice == "4":
             print("\n" + "="*60)

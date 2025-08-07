@@ -140,6 +140,36 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
+def search_emails_by_sender_date(sender, date, headers):
+    try:
+        date_obj = datetime.strptime(date, "%Y-%m-%d")
+        start_datetime = date_obj.strftime("%Y-%m-%dT00:00:00Z")
+        end_datetime = date_obj.strftime("%Y-%m-%dT23:59:59Z")
+    except ValueError:
+        print("Error: Date must be in YYYY-MM-DD format")
+        return []
+    
+    # Get email IDs from cache
+    email_ids = get_cached_email_ids(limit=100)
+    
+    filtered_emails = []
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                email = response.json()
+                email_date = email.get("receivedDateTime", "")
+                email_sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
+                if start_datetime <= email_date <= end_datetime and sender.lower() in email_sender.lower():
+                    filtered_emails.append(email)
+            else:
+                continue
+        except Exception:
+            continue
+    print(f"[DEBUG] Found {len(filtered_emails)} emails matching sender and date from {len(email_ids)} recent emails.")
+    return filtered_emails
+
 def search_emails_by_sender_and_date_range(sender, start_date, end_date, headers, email_ids):
     try:
         start_obj = datetime.strptime(start_date, "%Y-%m-%d")
