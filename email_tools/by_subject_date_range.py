@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import msal
 from urllib.parse import quote
 import time
-from shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
+from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 

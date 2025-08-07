@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import msal
 from urllib.parse import quote
 import time
-from shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
+from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ def get_access_token():
         return None
     
     print("============================================================")
-    print("Email ID Retriever - Authentication Required")
+    print("Email Sender-Date Retriever - Authentication Required")
     print("============================================================")
     print(flow["message"])
     print("============================================================")
@@ -40,40 +40,6 @@ def get_access_token():
         return result["access_token"]
     else:
         print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_email_by_id(email_id, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}"
-    
-    try:
-        print(f"[DEBUG] Requesting email: {url}")
-        response = requests.get(url, headers=headers, timeout=30)
-        
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            print(f"Error: Email with ID '{email_id}' not found (404)")
-            print(f"Possible reasons: Email was deleted, ID is invalid, or email is in a different mailbox")
-            return None
-        elif response.status_code == 400:
-            print(f"Error: Bad request for email ID '{email_id}' (400)")
-            print(f"Response: {response.text}")
-            print(f"Possible reasons: Invalid email ID format, ID contains special characters, or ID is malformed")
-            return None
-        elif response.status_code == 403:
-            print(f"Error: Access denied for email ID '{email_id}' (403)")
-            print(f"Possible reasons: Insufficient permissions or email is in a different mailbox")
-            return None
-        else:
-            print(f"Error retrieving email {email_id}: HTTP {response.status_code}")
-            print(f"Response: {response.text}")
-            return None
-            
-    except requests.exceptions.Timeout:
-        print(f"Error: Timeout while retrieving email {email_id}")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"Error retrieving email {email_id}: {e}")
         return None
 
 def get_conversation_messages(conversation_id, headers):
@@ -174,54 +140,79 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def get_recent_email_ids(headers, limit=10):
-    """Helper function to get recent email IDs for testing"""
-    url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
-    
+def search_emails_by_sender_date(sender, date, headers):
     try:
-        print(f"[DEBUG] Getting recent email IDs...")
-        response = requests.get(url, headers=headers, timeout=30)
-        
-        if response.status_code == 200:
-            emails = response.json().get("value", [])
-            print(f"\nRecent {len(emails)} emails (use these IDs for testing):")
-            print("=" * 80)
-            for i, email in enumerate(emails, 1):
-                subject = email.get("subject", "No Subject")
-                sender = email.get("from", {}).get("emailAddress", {}).get("address", "Unknown")
-                date = email.get("receivedDateTime", "Unknown")
-                email_id = email.get("id", "No ID")
-                print(f"{i}. ID: {email_id}")
-                print(f"   Subject: {subject}")
-                print(f"   From: {sender}")
-                print(f"   Date: {date}")
-                print()
-            return [email.get("id") for email in emails]
-        else:
-            print(f"Error getting recent emails: HTTP {response.status_code}")
-            print(f"Response: {response.text}")
-            return []
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Error getting recent emails: {e}")
+        date_obj = datetime.strptime(date, "%Y-%m-%d")
+        start_datetime = date_obj.strftime("%Y-%m-%dT00:00:00Z")
+        end_datetime = date_obj.strftime("%Y-%m-%dT23:59:59Z")
+    except ValueError:
+        print("Error: Date must be in YYYY-MM-DD format")
         return []
-
-def search_emails_by_id(headers, email_ids):
-    emails = []
+    
+    # Get email IDs from cache
+    email_ids = get_cached_email_ids(limit=100)
+    
+    filtered_emails = []
     for eid in email_ids:
         url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
-                emails.append(response.json())
+                email = response.json()
+                email_date = email.get("receivedDateTime", "")
+                email_sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
+                if start_datetime <= email_date <= end_datetime and sender.lower() in email_sender.lower():
+                    filtered_emails.append(email)
+            else:
+                continue
         except Exception:
             continue
-    print(f"[DEBUG] Found {len(emails)} emails from {len(email_ids)} recent emails.")
-    return emails
+    print(f"[DEBUG] Found {len(filtered_emails)} emails matching sender and date from {len(email_ids)} recent emails.")
+    return filtered_emails
 
-def retrieve_emails_by_ids(email_ids, headers):
+def search_emails_by_sender_and_date_range(sender, start_date, end_date, headers, email_ids):
+    try:
+        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        end_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        start_datetime = start_obj.strftime("%Y-%m-%dT00:00:00Z")
+        end_datetime = end_obj.strftime("%Y-%m-%dT23:59:59Z")
+    except ValueError:
+        print("Error: Dates must be in YYYY-MM-DD format")
+        return []
+    
+    filtered_emails = []
+    for eid in email_ids:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                email = response.json()
+                email_date = email.get("receivedDateTime", "")
+                email_sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
+                if start_datetime <= email_date <= end_datetime and sender.lower() in email_sender.lower():
+                    filtered_emails.append(email)
+            else:
+                continue
+        except Exception:
+            continue
+    print(f"[DEBUG] Found {len(filtered_emails)} emails matching sender and date from {len(email_ids)} recent emails.")
+    return filtered_emails
+
+def retrieve_emails_by_sender_date(sender, date, headers):
     print("============================================================")
-    print("Email ID Retriever (with Conversation Thread)")
+    print("Email Sender-Date Retriever (with Conversation Thread)")
+    print("============================================================")
+    print(f"Searching for emails from: {sender}")
+    print(f"Date: {date}")
+    print("============================================================")
+    
+    emails = search_emails_by_sender_date(sender, date, headers)
+    
+    if not emails:
+        print("No emails found matching the criteria.")
+        return []
+    
+    print(f"\nFound {len(emails)} emails from {sender} on {date}")
     print("============================================================")
     
     exclude_original = None
@@ -231,31 +222,27 @@ def retrieve_emails_by_ids(email_ids, headers):
     
     all_conversation_emails = []
     
-    for i, email_id in enumerate(email_ids, 1):
-        print(f"Retrieving email {i}/{len(email_ids)}: {email_id}")
-        email_data = get_email_by_id(email_id, headers)
-        if not email_data:
-            print(f"✗ Failed to retrieve email {email_id}")
-            continue
-        conversation_id = email_data.get("conversationId")
+    for i, email in enumerate(emails, 1):
+        print(f"\nProcessing email {i}/{len(emails)}: {email.get('subject', 'No Subject')}")
+        conversation_id = email.get("conversationId")
         if not conversation_id:
-            print(f"✗ No conversationId found for email {email_id}")
+            print(f"✗ No conversationId found for email")
             continue
         conversation_messages = get_conversation_messages(conversation_id, headers)
         if not conversation_messages:
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
         # Combine the original email and all conversation messages, remove duplicates by ID, and sort by receivedDateTime
-        orig_id = str(email_data.get("id")).lower()
+        orig_id = str(email.get("id")).lower()
         # Build a dict to deduplicate by ID
         msg_dict = {orig_id: {
-            "id": email_data.get("id"),
-            "subject": email_data.get("subject", "No Subject"),
-            "from": email_data.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
-            "receivedDateTime": email_data.get("receivedDateTime"),
-            "hasAttachments": email_data.get("hasAttachments", False),
-            "bodyPreview": (email_data.get("bodyPreview", "")[:100] + "..." if email_data.get("bodyPreview") else "No preview"),
-            "conversationId": email_data.get("conversationId")
+            "id": email.get("id"),
+            "subject": email.get("subject", "No Subject"),
+            "from": email.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
+            "receivedDateTime": email.get("receivedDateTime"),
+            "hasAttachments": email.get("hasAttachments", False),
+            "bodyPreview": (email.get("bodyPreview", "")[:100] + "..." if email.get("bodyPreview") else "No preview"),
+            "conversationId": email.get("conversationId")
         }}
         for msg in conversation_messages:
             msg_id = str(msg.get("id")).lower()
@@ -273,11 +260,15 @@ def retrieve_emails_by_ids(email_ids, headers):
         output_msgs = sorted(msg_dict.values(), key=lambda m: m.get("receivedDateTime", ""))
         all_conversation_emails.extend(output_msgs)
         print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation.")
+    
     print("\n============================================================")
     print("Retrieval Summary")
     print("============================================================")
-    print(f"Total conversations requested: {len(email_ids)}")
+    print(f"Sender: {sender}")
+    print(f"Date: {date}")
+    print(f"Total conversations found: {len(emails)}")
     print(f"Total messages retrieved: {len(all_conversation_emails)}")
+    
     if all_conversation_emails:
         print("\nRetrieved Conversation Messages:")
         print("============================================================")
@@ -289,11 +280,12 @@ def retrieve_emails_by_ids(email_ids, headers):
             print(f"   Preview: {email['bodyPreview']}")
             print(f"   ConversationId: {email['conversationId']}")
             print()
+    
     return all_conversation_emails
 
 def main():
     print("============================================================")
-    print("Email By ID Retriever")
+    print("Email By Sender Date Retriever")
     print("============================================================")
     
     access_token = get_access_token()
@@ -310,48 +302,10 @@ def main():
     limit = min(max(1, limit), 100)
     fetch_last_email_ids(headers, limit=limit)
     email_ids = get_cached_email_ids(limit=limit)
-    # Fetch subjects for the recent emails
-    emails_info = []
-    for eid in email_ids:
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject"
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                emails_info.append({"id": data.get("id"), "subject": data.get("subject", "No Subject")})
-        except Exception:
-            continue
-    if not emails_info:
-        print("No recent emails found.")
-        return
-    print("\nRecent Emails:")
-    print("============================================================")
-    for idx, info in enumerate(emails_info, 1):
-        print(f"{idx}. ID: {info['id']}")
-        print(f"   Subject: {info['subject']}")
-    print("============================================================")
-    print("Enter the numbers of the emails you want to retrieve (comma-separated, e.g., 1,3,5): ", end="")
-    selected = input().strip()
-    if not selected:
-        print("No selection made.")
-        return
-    try:
-        selected_indices = [int(x.strip()) for x in selected.split(",") if x.strip().isdigit()]
-    except Exception:
-        print("Invalid input.")
-        return
-    selected_ids = [emails_info[i-1]["id"] for i in selected_indices if 1 <= i <= len(emails_info)]
-    if not selected_ids:
-        print("No valid email numbers selected.")
-        return
-    emails = retrieve_emails_by_ids(selected_ids, headers)
-    
-    # If no emails found, offer to show recent emails again
-    if not emails:
-        print("\nNo emails were retrieved. Would you like to see recent email IDs to try again? (y/n): ", end="")
-        retry = input().strip().lower()
-        if retry == 'y':
-            get_recent_email_ids(headers, 10)
+    sender = input("Enter sender email to search for: ").strip()
+    start_date = input("Enter start date (YYYY-MM-DD): ").strip()
+    end_date = input("Enter end date (YYYY-MM-DD): ").strip()
+    emails = search_emails_by_sender_and_date_range(sender, start_date, end_date, headers, email_ids)
 
 if __name__ == "__main__":
     main() 
