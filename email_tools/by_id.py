@@ -3,40 +3,17 @@ import requests
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-import msal
 from urllib.parse import quote
 import time
 from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    scopes = ["https://graph.microsoft.com/.default"]
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    print("============================================================")
-    print("Email ID Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    result = app.acquire_token_by_device_flow(flow)
-    if "access_token" in result:
-        return result["access_token"]
+def get_email_by_id(email_id, headers, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}"
     else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_email_by_id(email_id, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}"
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}"
     try:
         print(f"[DEBUG] Requesting email: {url}")
         response = requests.get(url, headers=headers, timeout=30)
@@ -66,11 +43,18 @@ def get_email_by_id(email_id, headers):
         print(f"Error retrieving email {email_id}: {e}")
         return None
 
-def get_conversation_messages(conversation_id, headers):
+def get_conversation_messages(conversation_id, headers, user_id=None):
     from urllib.parse import quote
     import time
     base_url = "https://graph.microsoft.com/v1.0"
-    search_url = f"{base_url}/me/messages?$search=\"conversationId:{conversation_id}\""
+    
+    # For application permissions, we need to specify a user ID
+    if user_id:
+        user_prefix = f"users/{user_id}"
+    else:
+        user_prefix = "me"
+    
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -86,7 +70,7 @@ def get_conversation_messages(conversation_id, headers):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
     allitems_url = (
-        f"{base_url}/me/mailFolders/msgfolderroot/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
@@ -104,7 +88,7 @@ def get_conversation_messages(conversation_id, headers):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     inbox_url = (
-        f"{base_url}/me/mailFolders/inbox/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
@@ -123,7 +107,7 @@ def get_conversation_messages(conversation_id, headers):
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
     max_messages = 100
     while next_url and message_count < max_messages:
@@ -153,8 +137,11 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def get_recent_email_ids(headers, limit=10):
-    url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
+def get_recent_email_ids(headers, limit=10, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
+    else:
+        url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
     try:
         print(f"[DEBUG] Getting recent email IDs...")
         response = requests.get(url, headers=headers, timeout=30)
@@ -194,7 +181,7 @@ def search_emails_by_id(headers, email_ids):
     print(f"[DEBUG] Found {len(emails)} emails from {len(email_ids)} recent emails.")
     return emails
 
-def retrieve_emails_by_ids(email_ids, headers):
+def retrieve_emails_by_ids(email_ids, headers, user_id=None):
     print("============================================================")
     print("Email ID Retriever (with Conversation Thread)")
     print("============================================================")
@@ -205,7 +192,7 @@ def retrieve_emails_by_ids(email_ids, headers):
     all_conversation_emails = []
     for i, email_id in enumerate(email_ids, 1):
         print(f"Retrieving email {i}/{len(email_ids)}: {email_id}")
-        email_data = get_email_by_id(email_id, headers)
+        email_data = get_email_by_id(email_id, headers, user_id)
         if not email_data:
             print(f"✗ Failed to retrieve email {email_id}")
             continue
@@ -213,7 +200,7 @@ def retrieve_emails_by_ids(email_ids, headers):
         if not conversation_id:
             print(f"✗ No conversationId found for email {email_id}")
             continue
-        conversation_messages = get_conversation_messages(conversation_id, headers)
+        conversation_messages = get_conversation_messages(conversation_id, headers, user_id)
         if not conversation_messages:
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
@@ -280,6 +267,8 @@ def main():
     email_ids = get_cached_email_ids(limit=limit)
     emails_info = []
     for eid in email_ids:
+        # Note: This is the main function, so we can't use user_id here
+        # This would need to be updated if called from the main application
         url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject"
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -311,12 +300,12 @@ def main():
     if not selected_ids:
         print("No valid email numbers selected.")
         return
-    emails = retrieve_emails_by_ids(selected_ids, headers)
+    emails = retrieve_emails_by_ids(selected_ids, headers, None)  # No user_id in standalone mode
     if not emails:
         print("\nNo emails were retrieved. Would you like to see recent email IDs to try again? (y/n): ", end="")
         retry = input().strip().lower()
         if retry == 'y':
-            get_recent_email_ids(headers, 10)
+            get_recent_email_ids(headers, 10, None)  # No user_id in standalone mode
 
 if __name__ == "__main__":
     main() 

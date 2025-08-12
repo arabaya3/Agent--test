@@ -2,48 +2,15 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = [
-        "https://graph.microsoft.com/Channel.ReadBasic.All",
-        "https://graph.microsoft.com/Team.ReadBasic.All",
-        "https://graph.microsoft.com/Calendars.Read"
-    ]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Meeting Transcript Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
+def get_transcript_by_meeting_id(meeting_id, headers, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/onlineMeetings/{meeting_id}/transcripts"
     else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_transcript_by_meeting_id(meeting_id, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/onlineMeetings/{meeting_id}/transcripts"
+        url = f"https://graph.microsoft.com/v1.0/me/onlineMeetings/{meeting_id}/transcripts"
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 403:
@@ -64,7 +31,10 @@ def get_transcript_by_meeting_id(meeting_id, headers):
         # Get the first transcript (usually only one)
         transcript_id = transcripts[0].get("id")
         # Download the transcript content
-        transcript_url = f"https://graph.microsoft.com/v1.0/me/onlineMeetings/{meeting_id}/transcripts/{transcript_id}/content"
+        if user_id:
+            transcript_url = f"https://graph.microsoft.com/v1.0/users/{user_id}/onlineMeetings/{meeting_id}/transcripts/{transcript_id}/content"
+        else:
+            transcript_url = f"https://graph.microsoft.com/v1.0/me/onlineMeetings/{meeting_id}/transcripts/{transcript_id}/content"
         transcript_resp = requests.get(transcript_url, headers=headers)
         transcript_resp.raise_for_status()
         return transcript_resp.text
@@ -72,7 +42,7 @@ def get_transcript_by_meeting_id(meeting_id, headers):
         print(f"Error retrieving transcript: {e}")
         return None
 
-def retrieve_transcript_by_meeting_id(meeting_id):
+def retrieve_transcript_by_meeting_id(meeting_id, user_id=None):
     print("============================================================")
     print("Meeting Transcript Retriever")
     print("============================================================")
@@ -88,7 +58,7 @@ def retrieve_transcript_by_meeting_id(meeting_id):
         "Content-Type": "application/json"
     }
     
-    transcript = get_transcript_by_meeting_id(meeting_id, headers)
+    transcript = get_transcript_by_meeting_id(meeting_id, headers, user_id)
     if transcript:
         print("\nTranscript Content:\n")
         print(transcript)

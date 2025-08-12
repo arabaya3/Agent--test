@@ -1,39 +1,24 @@
 import os
 import requests
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
 _email_id_cache = []
 
-
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    scopes = ["https://graph.microsoft.com/.default"]
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    print(flow["message"])
-    result = app.acquire_token_by_device_flow(flow)
-    if "access_token" in result:
-        return result["access_token"]
-    else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def fetch_last_email_ids(headers, limit=100):
+def fetch_last_email_ids(headers, limit=100, user_id=None):
     """Fetch and cache the last N email IDs (up to 100)."""
     global _email_id_cache
     limit = min(max(1, int(limit)), 100)
-    url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
+    
+    # For application permissions, we need to specify a user ID
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
+    else:
+        # Fallback to /me for backward compatibility
+        url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
+    
     try:
         response = requests.get(url, headers=headers, timeout=20)
         response.raise_for_status()

@@ -3,52 +3,25 @@ import requests
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-import msal
 from urllib.parse import quote
 import time
-from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
+from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = ["https://graph.microsoft.com/.default"]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Email Date Range Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
-    else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_conversation_messages(conversation_id, headers):
+def get_conversation_messages(conversation_id, headers, user_id=None):
     from urllib.parse import quote
     import time
     base_url = "https://graph.microsoft.com/v1.0"
     
+    # For application permissions, we need to specify a user ID
+    if user_id:
+        user_prefix = f"users/{user_id}"
+    else:
+        user_prefix = "me"
     
-    search_url = f"{base_url}/me/messages?$search=\"conversationId:{conversation_id}\""
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -66,7 +39,7 @@ def get_conversation_messages(conversation_id, headers):
     
     
     allitems_url = (
-        f"{base_url}/me/mailFolders/msgfolderroot/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
@@ -86,7 +59,7 @@ def get_conversation_messages(conversation_id, headers):
     
     # 3. Try inbox with smaller limit
     inbox_url = (
-        f"{base_url}/me/mailFolders/inbox/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
@@ -107,7 +80,7 @@ def get_conversation_messages(conversation_id, headers):
     # 4. Limited fallback: Fetch recent messages only (max 1000)
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
     max_messages = 100  # Limit to 100 messages only
     
@@ -140,7 +113,7 @@ def get_conversation_messages(conversation_id, headers):
     print(f"[DEBUG] Conversation not found in recent {message_count} messages.")
     return []
 
-def search_emails_by_date_range(start_date, end_date, headers, email_ids):
+def search_emails_by_date_range(start_date, end_date, headers, email_ids, user_id=None):
     try:
         start_obj = datetime.strptime(start_date, "%Y-%m-%d")
         end_obj = datetime.strptime(end_date, "%Y-%m-%d")
@@ -153,7 +126,10 @@ def search_emails_by_date_range(start_date, end_date, headers, email_ids):
     # Fetch only the emails with the given IDs
     filtered_emails = []
     for eid in email_ids:
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        if user_id:
+            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{eid}"
+        else:
+            url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -168,7 +144,7 @@ def search_emails_by_date_range(start_date, end_date, headers, email_ids):
     print(f"[DEBUG] Found {len(filtered_emails)} emails matching criteria from {len(email_ids)} recent emails.")
     return filtered_emails
 
-def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids):
+def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user_id=None):
     print("============================================================")
     print("Email Date Range Retriever (with Conversation Thread)")
     print("============================================================")
@@ -176,7 +152,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids):
     print(f"To: {end_date}")
     print("============================================================")
     
-    emails = search_emails_by_date_range(start_date, end_date, headers, email_ids)
+    emails = search_emails_by_date_range(start_date, end_date, headers, email_ids, user_id)
     
     if not emails:
         print("No emails found in the specified date range.")
@@ -198,7 +174,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids):
         if not conversation_id:
             print(f"✗ No conversationId found for email")
             continue
-        conversation_messages = get_conversation_messages(conversation_id, headers)
+        conversation_messages = get_conversation_messages(conversation_id, headers, user_id)
         if not conversation_messages:
             print(f"✗ No messages found in conversation {conversation_id}")
             continue

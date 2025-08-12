@@ -3,43 +3,11 @@ import requests
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = ["https://graph.microsoft.com/Mail.Read", "https://graph.microsoft.com/User.Read", "https://graph.microsoft.com/Calendars.Read"]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Calendar Date Range Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
-    else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def search_meetings_by_date_range(start_date, end_date, headers):
+def search_meetings_by_date_range(start_date, end_date, headers, user_id=None):
     try:
         start_obj = datetime.strptime(start_date, "%Y-%m-%d")
         end_obj = datetime.strptime(end_date, "%Y-%m-%d")
@@ -50,7 +18,10 @@ def search_meetings_by_date_range(start_date, end_date, headers):
         print("Error: Dates must be in YYYY-MM-DD format")
         return []
     
-    url = f"https://graph.microsoft.com/v1.0/me/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
+    else:
+        url = f"https://graph.microsoft.com/v1.0/me/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
     
     all_meetings = []
     
@@ -77,7 +48,7 @@ def search_meetings_by_date_range(start_date, end_date, headers):
     
     return all_meetings
 
-def retrieve_meetings_by_date_range(start_date, end_date):
+def retrieve_meetings_by_date_range(start_date, end_date, user_id=None):
     print("============================================================")
     print("Calendar Date Range Retriever")
     print("============================================================")
@@ -94,7 +65,7 @@ def retrieve_meetings_by_date_range(start_date, end_date):
         "Content-Type": "application/json"
     }
     
-    meetings = search_meetings_by_date_range(start_date, end_date, headers)
+    meetings = search_meetings_by_date_range(start_date, end_date, headers, user_id)
     
     print("\n============================================================")
     print("Retrieval Summary")

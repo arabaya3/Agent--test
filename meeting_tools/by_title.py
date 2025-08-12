@@ -2,44 +2,15 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = ["https://graph.microsoft.com/Mail.Read", "https://graph.microsoft.com/User.Read", "https://graph.microsoft.com/Calendars.Read"]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Meeting by Title Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
+def search_meetings_by_title(title, headers, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
     else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def search_meetings_by_title(title, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
+        url = f"https://graph.microsoft.com/v1.0/me/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
     all_meetings = []
     try:
         while url:
@@ -54,7 +25,7 @@ def search_meetings_by_title(title, headers):
         return []
     return all_meetings
 
-def retrieve_meetings_by_title(title):
+def retrieve_meetings_by_title(title, user_id=None):
     print("============================================================")
     print("Meeting by Title Retriever")
     print("============================================================")
@@ -70,7 +41,7 @@ def retrieve_meetings_by_title(title):
         "Content-Type": "application/json"
     }
     
-    meetings = search_meetings_by_title(title, headers)
+    meetings = search_meetings_by_title(title, headers, user_id)
     print(f"\nTotal meetings found: {len(meetings)}\n")
     if meetings:
         for i, meeting in enumerate(meetings, 1):

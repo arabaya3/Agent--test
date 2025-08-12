@@ -2,44 +2,15 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = ["https://graph.microsoft.com/Mail.Read", "https://graph.microsoft.com/User.Read", "https://graph.microsoft.com/Calendars.Read"]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Meeting by ID Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
+def get_meeting_by_id(meeting_id, headers, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/events/{meeting_id}"
     else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_meeting_by_id(meeting_id, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/events/{meeting_id}"
+        url = f"https://graph.microsoft.com/v1.0/me/events/{meeting_id}"
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -48,7 +19,7 @@ def get_meeting_by_id(meeting_id, headers):
         print(f"Error retrieving meeting {meeting_id}: {e}")
         return None
 
-def retrieve_meeting_by_id(meeting_id):
+def retrieve_meeting_by_id(meeting_id, user_id=None):
     print("============================================================")
     print("Meeting by ID Retriever")
     print("============================================================")
@@ -64,7 +35,7 @@ def retrieve_meeting_by_id(meeting_id):
         "Content-Type": "application/json"
     }
     
-    meeting = get_meeting_by_id(meeting_id, headers)
+    meeting = get_meeting_by_id(meeting_id, headers, user_id)
     if meeting:
         print("\nMeeting Details:")
         print("============================================================")

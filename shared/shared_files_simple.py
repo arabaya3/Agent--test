@@ -1,4 +1,3 @@
-from msal import PublicClientApplication
 import requests
 import base64
 import json
@@ -9,13 +8,9 @@ import sys
 import io
 import time
 from dotenv import load_dotenv
+from .auth import get_access_token
 
 load_dotenv()
-
-client_id = os.getenv('CLIENT_ID')
-tenant_id = os.getenv('TENANT_ID')
-authority = f'https://login.microsoftonline.com/{tenant_id}' if tenant_id else None
-scopes = ['https://graph.microsoft.com/Mail.Read', 'https://graph.microsoft.com/User.Read']
 
 allowed_extensions = [
     '.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.ppt', '.pptx',
@@ -27,11 +22,6 @@ text_extensions = [
     '.txt', '.csv', '.log', '.md', '.tex', '.html', '.htm', '.xml', '.json'
 ]
 
-app = PublicClientApplication(
-    client_id=client_id,
-    authority=authority,
-)
-
 def is_allowed_file(filename):
     file_ext = os.path.splitext(filename.lower())[1]
     return file_ext in allowed_extensions
@@ -40,12 +30,18 @@ def is_text_file(filename):
     file_ext = os.path.splitext(filename.lower())[1]
     return file_ext in text_extensions
 
-def get_conversation_messages(conversation_id, headers):
+def get_conversation_messages(conversation_id, headers, user_id=None):
     """Get all messages in a conversation thread"""
     base_url = "https://graph.microsoft.com/v1.0"
     
+    # For application permissions, we need to specify a user ID
+    if user_id:
+        user_prefix = f"users/{user_id}"
+    else:
+        user_prefix = "me"
+    
     # 1. Try $search (if enabled)
-    search_url = f"{base_url}/me/messages?$search=\"conversationId:{conversation_id}\""
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -63,7 +59,7 @@ def get_conversation_messages(conversation_id, headers):
     
     # 2. Try msgfolderroot (AllItems) with smaller limit
     allitems_url = (
-        f"{base_url}/me/mailFolders/msgfolderroot/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
@@ -83,7 +79,7 @@ def get_conversation_messages(conversation_id, headers):
     
     # 3. Try inbox with smaller limit
     inbox_url = (
-        f"{base_url}/me/mailFolders/inbox/messages?"
+        f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
@@ -104,7 +100,7 @@ def get_conversation_messages(conversation_id, headers):
     # 4. Limited fallback: Fetch recent messages only (max 1000)
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/me/messages?$top=100&$orderby=receivedDateTime desc"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
     max_messages = 1000  # Limit to prevent excessive API calls
     
@@ -246,40 +242,15 @@ def extract_pptx_text_from_bytes(content_bytes):
         return None
 
 def get_access_token():
-    print("Attempting to get access token...")
-    
-    accounts = app.get_accounts()
-    if accounts:
-        print("Found existing account")
-        result = app.acquire_token_silent(scopes, account=accounts[0])
-        if result:
-            return result['access_token']
-    
-    print("Opening browser for login...")
-    flow = app.initiate_device_flow(scopes=scopes)
-    
-    if "user_code" not in flow:
-        print("Failed to create device code")
-        return None
-    
-    print(f"Device code: {flow['user_code']}")
-    print(f"Login URL: {flow['verification_uri']}")
-    
-    webbrowser.open(flow['verification_uri'])
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        print("Login successful")
-        return result['access_token']
-    else:
-        print("Login failed")
-        print("Error:", result.get('error'))
-        print("Description:", result.get('error_description'))
-        return None
+    """Get access token using application permissions (client credentials flow)"""
+    from .auth import get_access_token as get_app_token
+    return get_app_token()
 
-def get_email_by_id(email_id, headers):
-    email_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}'
+def get_email_by_id(email_id, headers, user_id=None):
+    if user_id:
+        email_url = f'https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}'
+    else:
+        email_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}'
     response = requests.get(email_url, headers=headers)
     
     if response.status_code == 200:
@@ -289,8 +260,11 @@ def get_email_by_id(email_id, headers):
         print(f"Error: {response.text}")
         return None
 
-def get_attachments_for_email(email_id, headers):
-    att_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}/attachments'
+def get_attachments_for_email(email_id, headers, user_id=None):
+    if user_id:
+        att_url = f'https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}/attachments'
+    else:
+        att_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}/attachments'
     response = requests.get(att_url, headers=headers)
     
     if response.status_code == 200:

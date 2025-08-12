@@ -2,44 +2,15 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
-import msal
+from shared.auth import get_access_token
 
 load_dotenv()
 
-def get_access_token():
-    client_id = os.getenv('CLIENT_ID')
-    tenant_id = os.getenv('TENANT_ID')
-    
-    if not client_id or not tenant_id:
-        print("Error: CLIENT_ID and TENANT_ID must be set in .env file")
-        return None
-    
-    authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.PublicClientApplication(client_id, authority=authority)
-    
-    scopes = ["https://graph.microsoft.com/Mail.Read", "https://graph.microsoft.com/User.Read", "https://graph.microsoft.com/Calendars.Read", "https://graph.microsoft.com/OnlineMeetings.Read.All"]
-    
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        print("Error: Failed to create device flow")
-        return None
-    
-    print("============================================================")
-    print("Meeting Attendance Retriever - Authentication Required")
-    print("============================================================")
-    print(flow["message"])
-    print("============================================================")
-    
-    result = app.acquire_token_by_device_flow(flow)
-    
-    if "access_token" in result:
-        return result["access_token"]
+def get_attendance_by_meeting_id(meeting_id, headers, user_id=None):
+    if user_id:
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/events/{meeting_id}/attendanceReports"
     else:
-        print(f"Error: {result.get('error_description', 'Unknown error')}")
-        return None
-
-def get_attendance_by_meeting_id(meeting_id, headers):
-    url = f"https://graph.microsoft.com/v1.0/me/events/{meeting_id}/attendanceReports"
+        url = f"https://graph.microsoft.com/v1.0/me/events/{meeting_id}/attendanceReports"
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 403:
@@ -60,7 +31,7 @@ def get_attendance_by_meeting_id(meeting_id, headers):
         print(f"Error retrieving attendance: {e}")
         return None
 
-def retrieve_attendance_by_meeting_id(meeting_id):
+def retrieve_attendance_by_meeting_id(meeting_id, user_id=None):
     print("============================================================")
     print("Meeting Attendance Retriever")
     print("============================================================")
@@ -76,7 +47,7 @@ def retrieve_attendance_by_meeting_id(meeting_id):
         "Content-Type": "application/json"
     }
     
-    reports = get_attendance_by_meeting_id(meeting_id, headers)
+    reports = get_attendance_by_meeting_id(meeting_id, headers, user_id)
     if reports:
         for i, report in enumerate(reports, 1):
             print(f"Attendance Report {i}:")
