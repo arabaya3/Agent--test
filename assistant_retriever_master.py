@@ -22,6 +22,7 @@ from meeting_tools.by_title import retrieve_meetings_by_title
 from meeting_tools.transcript import retrieve_transcript_by_meeting_id
 from meeting_tools.audience import retrieve_meeting_audience
 from meeting_tools.attendance import retrieve_attendance_by_meeting_id
+from onedrive_tools.list_files import list_onedrive_files
 
 load_dotenv()
 
@@ -66,9 +67,11 @@ def main():
         print("11. Get transcript from meeting ID")
         print("12. Get audience (attendees) from meeting ID")
         print("13. Get attendance from meeting ID")
-        print("14. Exit")
+        print("ONEDRIVE OPTIONS:")
+        print("14. List OneDrive files in a folder")
+        print("15. Exit")
         print("============================================================")
-        choice = input("Select an option (1-14): ").strip()
+        choice = input("Select an option (1-15): ").strip()
         if choice in {"1", "2", "3", "4"}:
             access_token = get_access_token()
             if not access_token:
@@ -264,10 +267,32 @@ def main():
                 continue
             retrieve_attendance_by_meeting_id(meeting_id, user_id)
         elif choice == "14":
+            print("\n" + "="*60)
+            print("List OneDrive Files in a Folder")
+            print("="*60)
+            user_id = DEFAULT_USER_ID
+            folder = input("Enter folder path (leave blank for root): ").strip()
+            try:
+                top = int(input("Max items to show (default 50): ").strip() or 50)
+            except ValueError:
+                top = 50
+            try:
+                items = list_onedrive_files(user_id=user_id, folder_path=folder or None, top=top)
+                if not items:
+                    print("No items found.")
+                else:
+                    for i, it in enumerate(items, 1):
+                        is_folder = bool(it.get("folder"))
+                        size = it.get("size", 0)
+                        name = it.get("name", "")
+                        print(f"{i:2d}. {'[Folder]' if is_folder else '[File]  '} {name}  (size: {size})")
+            except Exception as e:
+                print(f"Error listing files: {e}")
+        elif choice == "15":
             print("Exiting...")
             break
         else:
-            print("Invalid choice. Please select 1-14.")
+            print("Invalid choice. Please select 1-15.")
         print("\n" + "="*60)
         input("Press Enter to continue...")
         print("\n" * 2)
