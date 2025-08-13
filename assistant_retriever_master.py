@@ -25,6 +25,9 @@ from meeting_tools.attendance import retrieve_attendance_by_meeting_id
 
 load_dotenv()
 
+# Default user ID for application permissions (can be overridden in .env file)
+DEFAULT_USER_ID = os.getenv('DEFAULT_USER_ID', "executive.assistant@menadevs.io")
+
 def search_emails(headers, email_ids, user_id=None):
     emails = []
     for eid in email_ids:
@@ -76,10 +79,8 @@ def main():
             }
             
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
+            print(f"Using user ID: {user_id}")
                 
             try:
                 limit = int(input("How many recent emails do you want to fetch? (1-100, default 100): ").strip() or 100)
@@ -152,10 +153,7 @@ def main():
             print("Get Meetings by Date")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             date = input("Enter date (YYYY-MM-DD): ").strip()
             if not date:
                 print("Error: Date is required")
@@ -166,10 +164,7 @@ def main():
             print("Retrieve Meetings by Organizer and Date")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             organizer = input("Enter organizer email address: ").strip()
             if not organizer:
                 print("Error: Organizer email is required")
@@ -184,10 +179,7 @@ def main():
             print("Retrieve All Meetings Within Date Range")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             start_date = input("Enter start date (YYYY-MM-DD): ").strip()
             if not start_date:
                 print("Error: Start date is required")
@@ -202,10 +194,7 @@ def main():
             print("Retrieve Meetings by Subject and Date Range")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             subject = input("Enter subject keyword to search: ").strip()
             if not subject:
                 print("Error: Subject keyword is required")
@@ -224,10 +213,7 @@ def main():
             print("Get Meeting by ID")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             meeting_id = input("Enter meeting ID: ").strip()
             if not meeting_id:
                 print("Error: Meeting ID is required")
@@ -238,10 +224,7 @@ def main():
             print("Get Meeting by Title")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             title = input("Enter meeting title or keyword: ").strip()
             if not title:
                 print("Error: Meeting title is required")
@@ -252,10 +235,7 @@ def main():
             print("Get Transcript from Meeting ID")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             meeting_id = input("Enter meeting ID: ").strip()
             if not meeting_id:
                 print("Error: Meeting ID is required")
@@ -266,10 +246,7 @@ def main():
             print("Get Audience (Attendees) from Meeting ID")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             meeting_id = input("Enter meeting ID: ").strip()
             if not meeting_id:
                 print("Error: Meeting ID is required")
@@ -280,10 +257,7 @@ def main():
             print("Get Attendance from Meeting ID")
             print("="*60)
             # For application permissions, we need a user ID
-            user_id = input("Enter user ID or email address (for application permissions): ").strip()
-            if not user_id:
-                print("Error: User ID is required for application permissions")
-                continue
+            user_id = DEFAULT_USER_ID
             meeting_id = input("Enter meeting ID: ").strip()
             if not meeting_id:
                 print("Error: Meeting ID is required")

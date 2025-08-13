@@ -24,6 +24,7 @@ You need to set these environment variables in your `.env` file:
 CLIENT_ID=your_client_id_here
 TENANT_ID=your_tenant_id_here
 CLIENT_SECRET=your_client_secret_here
+DEFAULT_USER_ID=executive.assistant@menadevs.io
 ```
 
 ## How to Use
@@ -35,6 +36,7 @@ Create a `.env` file in the root directory with your Azure app registration deta
 CLIENT_ID=12345678-1234-1234-1234-123456789012
 TENANT_ID=87654321-4321-4321-4321-210987654321
 CLIENT_SECRET=your_client_secret_value_here
+DEFAULT_USER_ID=executive.assistant@menadevs.io
 ```
 
 ### 2. Grant Admin Consent
@@ -45,12 +47,14 @@ In Azure Portal, make sure to:
 4. Ensure all required permissions show "Granted for [Your Organization]"
 
 ### 3. Run the Application
-When running the application, you'll now be prompted to enter a user ID or email address for each operation, since the application can access any user's data.
+The application automatically uses `executive.assistant@menadevs.io` as the default user ID for all operations, eliminating the need to manually enter a user ID each time.
 
-### 4. User ID Requirements
-- **Email operations (1-4)**: User ID is prompted once at the beginning
-- **Calendar operations (5-8)**: User ID is prompted for each operation
-- **Meeting operations (9-13)**: User ID is prompted for each operation
+### 4. User ID Configuration
+- **Default User ID**: `executive.assistant@menadevs.io` (can be configured in `.env` file via `DEFAULT_USER_ID`)
+- **Email operations (1-4)**: Uses default user ID automatically
+- **Calendar operations (5-8)**: Uses default user ID automatically  
+- **Meeting operations (9-13)**: Uses default user ID automatically
+- **Customization**: To use a different user ID, add `DEFAULT_USER_ID=your_email@domain.com` to your `.env` file
 
 ## Required Permissions
 
@@ -122,6 +126,14 @@ To test the setup:
 - `by_sender_date.py` - Retrieve emails by sender and date
 - `by_date_range.py` - Retrieve emails by date range
 - `by_subject_date_range.py` - Retrieve emails by subject and date range
+
+### Email Retrieval Improvements ✅
+- **No Duplicate Emails**: Implemented conversation-level deduplication to prevent duplicate emails
+- **Always Include Main Email**: Removed user prompts - main email and all replies are always included
+- **Conversation Threading**: Each email retrieval now includes the complete conversation thread
+- **Automatic Deduplication**: Uses email ID-based deduplication within conversations
+- **Global Deduplication**: Prevents processing the same conversation multiple times across search results
+- **Accurate Reporting**: Shows both total emails found and unique conversations processed
 
 ### Calendar Tools ✅
 - `by_date.py` - Get meetings by date

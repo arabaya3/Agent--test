@@ -161,12 +161,10 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
     print(f"\nFound {len(emails)} emails in date range {start_date} to {end_date}")
     print("============================================================")
     
-    exclude_original = None
-    while exclude_original not in ("y", "n"):
-        exclude_original = input("Exclude the original message and only show replies? (y/n): ").strip().lower()
-    exclude_original = exclude_original == "y"
-    
+    # Always include main email and all replies (no user prompt needed)
     all_conversation_emails = []
+    processed_conversation_ids = set()  # Track processed conversations to avoid duplicates
+    unique_conversations_processed = 0  # Count unique conversations actually processed
     
     for i, email in enumerate(emails, 1):
         print(f"\nProcessing email {i}/{len(emails)}: {email.get('subject', 'No Subject')}")
@@ -174,14 +172,25 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
         if not conversation_id:
             print(f"✗ No conversationId found for email")
             continue
+            
+        # Skip if we've already processed this conversation
+        if conversation_id in processed_conversation_ids:
+            print(f"✗ Conversation already processed, skipping")
+            continue
+        processed_conversation_ids.add(conversation_id)
+        unique_conversations_processed += 1
+        
         conversation_messages = get_conversation_messages(conversation_id, headers, user_id)
         if not conversation_messages:
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
-        # Combine the original email and all conversation messages, remove duplicates by ID, and sort by receivedDateTime
+            
+        # Build a dict to deduplicate by ID (include original email and all conversation messages)
+        msg_dict = {}
+        
+        # Add the original email first
         orig_id = str(email.get("id")).lower()
-        # Build a dict to deduplicate by ID
-        msg_dict = {orig_id: {
+        msg_dict[orig_id] = {
             "id": email.get("id"),
             "subject": email.get("subject", "No Subject"),
             "from": email.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
@@ -189,29 +198,32 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
             "hasAttachments": email.get("hasAttachments", False),
             "bodyPreview": (email.get("bodyPreview", "")[:100] + "..." if email.get("bodyPreview") else "No preview"),
             "conversationId": email.get("conversationId")
-        }}
+        }
+        
+        # Add all conversation messages (this will overwrite the original if it's duplicated)
         for msg in conversation_messages:
             msg_id = str(msg.get("id")).lower()
-            if msg_id not in msg_dict:
-                msg_dict[msg_id] = {
-                    "id": msg.get("id"),
-                    "subject": msg.get("subject", "No Subject"),
-                    "from": msg.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
-                    "receivedDateTime": msg.get("receivedDateTime"),
-                    "hasAttachments": msg.get("hasAttachments", False),
-                    "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
-                    "conversationId": msg.get("conversationId")
-                }
+            msg_dict[msg_id] = {
+                "id": msg.get("id"),
+                "subject": msg.get("subject", "No Subject"),
+                "from": msg.get("from", {}).get("emailAddress", {}).get("address", "Unknown"),
+                "receivedDateTime": msg.get("receivedDateTime"),
+                "hasAttachments": msg.get("hasAttachments", False),
+                "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
+                "conversationId": msg.get("conversationId")
+            }
+        
         # Sort all messages by receivedDateTime
         output_msgs = sorted(msg_dict.values(), key=lambda m: m.get("receivedDateTime", ""))
         all_conversation_emails.extend(output_msgs)
-        print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation.")
+        print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation (including main email and all replies).")
     
     print("\n============================================================")
     print("Retrieval Summary")
     print("============================================================")
     print(f"Date Range: {start_date} to {end_date}")
-    print(f"Total conversations found: {len(emails)}")
+    print(f"Total emails found: {len(emails)}")
+    print(f"Unique conversations processed: {unique_conversations_processed}")
     print(f"Total messages retrieved: {len(all_conversation_emails)}")
     
     if all_conversation_emails:
