@@ -25,6 +25,7 @@ from meeting_tools.attendance import retrieve_attendance_by_meeting_id
 from onedrive_tools.list_files import list_onedrive_files
 from onedrive_tools.retrieve_files import retrieve_onedrive_file
 from onedrive_tools.upload_files import upload_onedrive_file
+from agent.core_agent import handle_query as core_agent_handle_query
 
 load_dotenv()
 
@@ -73,9 +74,10 @@ def main():
         print("14. List OneDrive files in a folder")
         print("15. Download a OneDrive file")
         print("16. Upload a file to OneDrive")
-        print("17. Exit")
+        print("17. Ask Core Agent (all tools, natural language)")
+        print("18. Exit")
         print("============================================================")
-        choice = input("Select an option (1-17): ").strip()
+        choice = input("Select an option (1-18): ").strip()
         if choice in {"1", "2", "3", "4"}:
             access_token = get_access_token()
             if not access_token:
@@ -332,10 +334,21 @@ def main():
             except Exception as e:
                 print(f"Error uploading file: {e}")
         elif choice == "17":
+            print("\n" + "="*60)
+            print("Core Agent (All Tools)")
+            print("="*60)
+            user_id = input(f"Default user's email for this session (leave blank for {DEFAULT_USER_ID}): ").strip() or DEFAULT_USER_ID
+            query = input("Ask your question (e.g., 'emails from bob on 2025-08-01'): ")
+            try:
+                result = core_agent_handle_query(query, default_user_id=user_id)
+                print(json.dumps(result, indent=2))
+            except Exception as e:
+                print(f"Agent error: {e}")
+        elif choice == "18":
             print("Exiting...")
             break
         else:
-            print("Invalid choice. Please select 1-17.")
+            print("Invalid choice. Please select 1-18.")
         print("\n" + "="*60)
         input("Press Enter to continue...")
         print("\n" * 2)
