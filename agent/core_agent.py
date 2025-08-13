@@ -69,7 +69,7 @@ def _parse_dates(query: str) -> List[str]:
 def _decide_with_rules(query: str) -> Dict[str, Any]:
     q = query.lower()
     emails = re.findall(r"[\w\.-]+@[\w\.-]+", query)
-    user_id = emails[0] if emails else None
+    # Don't automatically assign user_id from query - let it be handled by default_user_id
     dates = _parse_dates(query)
     ids = re.findall(r"[A-Za-z0-9-]{10,}", query)  # rough for message/meeting ids
     # quoted subject or folder/path
@@ -80,66 +80,68 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
         if any(k in q for k in ["upload", "send"]):
             return {
                 "tool": "onedrive_upload",
-                "user_id": user_id,
                 "destination_path": (quoted[1] if len(quoted) >= 2 else None),
                 "local_path": (quoted[0] if quoted else None),
             }
         if any(k in q for k in ["download", "get file", "retrieve file"]):
             return {
                 "tool": "onedrive_download",
-                "user_id": user_id,
                 "item_path": (quoted[0] if quoted else None),
                 "local_path": (quoted[1] if len(quoted) >= 2 else None),
             }
         # default list
         return {
             "tool": "onedrive_list",
-            "user_id": user_id,
             "folder_path": (quoted[0] if quoted else None),
             "top": 50,
         }
 
     # Meeting explicit features
     if "transcript" in q:
-        return {"tool": "meeting_transcript", "meeting_id": ids[0] if ids else None, "user_id": user_id}
+        return {"tool": "meeting_transcript", "meeting_id": ids[0] if ids else None}
     if "attendance" in q:
-        return {"tool": "meeting_attendance", "meeting_id": ids[0] if ids else None, "user_id": user_id}
+        return {"tool": "meeting_attendance", "meeting_id": ids[0] if ids else None}
     if "audience" in q or "attendees" in q:
-        return {"tool": "meeting_audience", "meeting_id": ids[0] if ids else None, "user_id": user_id}
+        return {"tool": "meeting_audience", "meeting_id": ids[0] if ids else None}
     if "meeting" in q and ("id" in q or re.search(r"id\s*[:=]", q)):
-        return {"tool": "meeting_by_id", "meeting_id": ids[0] if ids else None, "user_id": user_id}
+        return {"tool": "meeting_by_id", "meeting_id": ids[0] if ids else None}
     if "meeting" in q and ("title" in q or "subject" in q):
-        return {"tool": "meeting_by_title", "title": (quoted[0] if quoted else None), "user_id": user_id}
+        return {"tool": "meeting_by_title", "title": (quoted[0] if quoted else None)}
 
     # Calendar
     if any(k in q for k in ["calendar", "meetings", "meeting schedule"]):
         if "organizer" in q and dates:
-            return {"tool": "calendar_by_organizer_date", "organizer": (emails[1] if len(emails) > 1 else emails[0] if emails else quoted[0] if quoted else None), "date": dates[0], "user_id": user_id}
+            return {"tool": "calendar_by_organizer_date", "organizer": (emails[1] if len(emails) > 1 else emails[0] if emails else quoted[0] if quoted else None), "date": dates[0]}
         if len(dates) >= 2:
-            return {"tool": "calendar_by_date_range", "start_date": dates[0], "end_date": dates[1], "user_id": user_id}
+            return {"tool": "calendar_by_date_range", "start_date": dates[0], "end_date": dates[1]}
         if ("subject" in q or "title" in q) and dates:
-            return {"tool": "calendar_by_subject_date_range", "subject": (quoted[0] if quoted else None), "start_date": dates[0], "end_date": dates[1] if len(dates) > 1 else dates[0], "user_id": user_id}
+            return {"tool": "calendar_by_subject_date_range", "subject": (quoted[0] if quoted else None), "start_date": dates[0], "end_date": dates[1] if len(dates) > 1 else dates[0]}
         if dates:
-            return {"tool": "calendar_by_date", "date": dates[0], "user_id": user_id}
+            return {"tool": "calendar_by_date", "date": dates[0]}
 
     # Email
     if "email" in q or "emails" in q or "inbox" in q:
         if "id" in q and ids:
-            return {"tool": "email_by_id", "email_ids": ids, "user_id": user_id}
-        if "from" in q and dates:
+            return {"tool": "email_by_id", "email_ids": ids}
+        # Check for date range first (more specific)
+        if len(dates) >= 2:
+            return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[1]}
+        # Check for sender query (must have email address and single date)
+        if "from" in q and dates and len(dates) == 1 and emails and any("@" in email for email in emails):
             # find sender from email list or quoted
             sender = (emails[1] if len(emails) > 1 else emails[0] if emails else quoted[0] if quoted else None)
-            return {"tool": "email_by_sender_date", "sender": sender, "date": dates[0], "user_id": user_id}
+            return {"tool": "email_by_sender_date", "sender": sender, "date": dates[0]}
         if "subject" in q and len(dates) >= 1:
             subject = quoted[0] if quoted else None
             start_date = dates[0]
             end_date = dates[1] if len(dates) > 1 else dates[0]
-            return {"tool": "email_by_subject_date_range", "subject": subject, "start_date": start_date, "end_date": end_date, "user_id": user_id}
-        if len(dates) >= 2:
-            return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[1], "user_id": user_id}
+            return {"tool": "email_by_subject_date_range", "subject": subject, "start_date": start_date, "end_date": end_date}
+        # Single date fallback
+        if dates:
+            return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[0]}
 
     # fallback
-    return {"tool": "onedrive_list", "user_id": user_id, "folder_path": None, "top": 50}
+    return {"tool": "onedrive_list", "folder_path": None, "top": 50}
 
 
 def handle_query(query: str, default_user_id: Optional[str] = None) -> Dict[str, Any]:
