@@ -23,6 +23,8 @@ from meeting_tools.transcript import retrieve_transcript_by_meeting_id
 from meeting_tools.audience import retrieve_meeting_audience
 from meeting_tools.attendance import retrieve_attendance_by_meeting_id
 from onedrive_tools.list_files import list_onedrive_files
+from onedrive_tools.retrieve_files import retrieve_onedrive_file
+from onedrive_tools.upload_files import upload_onedrive_file
 
 load_dotenv()
 
@@ -69,9 +71,11 @@ def main():
         print("13. Get attendance from meeting ID")
         print("ONEDRIVE OPTIONS:")
         print("14. List OneDrive files in a folder")
-        print("15. Exit")
+        print("15. Download a OneDrive file")
+        print("16. Upload a file to OneDrive")
+        print("17. Exit")
         print("============================================================")
-        choice = input("Select an option (1-15): ").strip()
+        choice = input("Select an option (1-17): ").strip()
         if choice in {"1", "2", "3", "4"}:
             access_token = get_access_token()
             if not access_token:
@@ -289,10 +293,49 @@ def main():
             except Exception as e:
                 print(f"Error listing files: {e}")
         elif choice == "15":
+            print("\n" + "="*60)
+            print("Download OneDrive File")
+            print("="*60)
+            user_id = input(f"Enter user's email (leave blank for default {DEFAULT_USER_ID}): ").strip() or DEFAULT_USER_ID
+            item_path = input("Enter OneDrive file path (e.g., Documents/report.pdf): ").strip()
+            if not item_path:
+                print("Error: File path is required")
+                continue
+            download_to = input("Enter local output path (e.g., ./report.pdf): ").strip()
+            if not download_to:
+                print("Error: Output path is required")
+                continue
+            try:
+                _, meta = retrieve_onedrive_file(item_path=item_path, user_id=user_id, download_to=download_to)
+                print("Downloaded successfully.")
+                print(f"Type: {meta.get('content_type')}  Size: {meta.get('content_length')}")
+                print(f"Saved to: {download_to}")
+            except Exception as e:
+                print(f"Error downloading file: {e}")
+        elif choice == "16":
+            print("\n" + "="*60)
+            print("Upload File to OneDrive")
+            print("="*60)
+            user_id = input(f"Enter user's email (leave blank for default {DEFAULT_USER_ID}): ").strip() or DEFAULT_USER_ID
+            local_file = input("Enter local file path to upload: ").strip()
+            if not local_file:
+                print("Error: Local file path is required")
+                continue
+            dest_path = input("Enter OneDrive destination path including file name (e.g., Documents/report.pdf): ").strip()
+            if not dest_path:
+                print("Error: Destination path is required")
+                continue
+            try:
+                item = upload_onedrive_file(file_path=local_file, destination_path=dest_path, user_id=user_id)
+                print("Uploaded successfully.")
+                print(f"Name: {item.get('name')}  Size: {item.get('size')}\nURL: {item.get('webUrl')}")
+            except Exception as e:
+                print(f"Error uploading file: {e}")
+        elif choice == "17":
             print("Exiting...")
             break
         else:
-            print("Invalid choice. Please select 1-15.")
+            print("Invalid choice. Please select 1-17.")
         print("\n" + "="*60)
         input("Press Enter to continue...")
         print("\n" * 2)
