@@ -2,11 +2,21 @@ import os
 import json
 import re
 from typing import Optional, Dict, Any, List
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 try:
     import aixplain as ax
     HAS_AIXPLAIN = True
-except Exception:
+    # Configure AIXplain with API key
+    api_key = os.getenv("AIXPLAIN_API_KEY") or os.getenv("TEAM_API_KEY")
+    if api_key:
+        # Set the API key for AIXplain
+        os.environ["TEAM_API_KEY"] = api_key
+except Exception as e:
+    print(f"Warning: AIXplain not available: {e}")
     HAS_AIXPLAIN = False
 
 from shared.auth import get_access_token
@@ -29,53 +39,128 @@ from onedrive_tools.retrieve_files import retrieve_onedrive_file
 from onedrive_tools.upload_files import upload_onedrive_file
 
 
-SYSTEM_DECISION_PROMPT = (
-    "You are a strict router. Decide which enterprise tool to use and return JSON only. "
-    "tools: ['email_by_id','email_by_sender_date','email_by_date_range','email_by_subject_date_range',"
-    "'calendar_by_date','calendar_by_organizer_date','calendar_by_date_range','calendar_by_subject_date_range',"
-    "'meeting_by_id','meeting_by_title','meeting_transcript','meeting_audience','meeting_attendance',"
-    "'onedrive_list','onedrive_download','onedrive_upload']. "
-    "Return fields needed by that tool and null for unknowns."
-)
+# Enhanced system prompt for AIXplain model
+SYSTEM_DECISION_PROMPT = """
+You are an intelligent enterprise assistant that routes user queries to the appropriate tools.
+
+Available tools:
+1. email_by_id - Retrieve emails by specific IDs
+2. email_by_sender_date - Retrieve emails from a specific sender on a specific date
+3. email_by_date_range - Retrieve emails within a date range
+4. email_by_subject_date_range - Retrieve emails with specific subject within a date range
+5. calendar_by_date - Get meetings on a specific date
+6. calendar_by_organizer_date - Get meetings organized by someone on a specific date
+7. calendar_by_date_range - Get meetings within a date range
+8. calendar_by_subject_date_range - Get meetings with specific subject within a date range
+9. meeting_by_id - Get meeting details by ID
+10. meeting_by_title - Get meetings by title
+11. meeting_transcript - Get meeting transcript by meeting ID
+12. meeting_audience - Get meeting attendees by meeting ID
+13. meeting_attendance - Get meeting attendance reports by meeting ID
+14. onedrive_list - List files in OneDrive folder
+15. onedrive_download - Download a file from OneDrive
+16. onedrive_upload - Upload a file to OneDrive
+
+Analyze the user query and return a JSON response with:
+- tool: the appropriate tool name
+- Any required parameters (sender, date, start_date, end_date, subject, email_ids, meeting_id, title, item_path, local_path, destination_path, folder_path, top, etc.)
+
+Examples:
+Query: "emails from john@example.com on 2025-08-10"
+Response: {"tool": "email_by_sender_date", "sender": "john@example.com", "date": "2025-08-10"}
+
+Query: "meetings from 2025-08-01 to 2025-08-15"
+Response: {"tool": "calendar_by_date_range", "start_date": "2025-08-01", "end_date": "2025-08-15"}
+
+Query: "list files in Documents folder"
+Response: {"tool": "onedrive_list", "folder_path": "Documents", "top": 50}
+
+Return only valid JSON, no additional text.
+"""
 
 
-def _run_aixplain(query: str) -> Optional[Dict[str, Any]]:
+def _run_aixplain_model(query: str) -> Optional[Dict[str, Any]]:
+    """
+    Use AIXplain model to intelligently route the query to the appropriate tool.
+    """
     if not HAS_AIXPLAIN:
+        print("AIXplain not available, falling back to rule-based logic")
         return None
+    
     try:
-        target_id = os.getenv("AIXPLAIN_MODEL_ID") or os.getenv("AIXPLAIN_CORE_PIPELINE_API")
-        if not target_id:
+        # Get model ID from environment
+        model_id = os.getenv("AIXPLAIN_MODEL_ID")
+        if not model_id:
+            print("AIXPLAIN_MODEL_ID not set in environment")
             return None
-        model = ax.Model.find(id=target_id)
-        if not model:
+        
+        # Create the prompt
+        prompt = f"System: {SYSTEM_DECISION_PROMPT}\n\nUser: {query}\n\nAssistant:"
+        
+        print(f"[AIXplain] Using model: {model_id}")
+        print(f"[AIXplain] Processing query: {query}")
+        
+        # Initialize AIXplain client with API key
+        try:
+            client = ax.Aixplain(api_key=api_key)
+            
+            # Try to run the model using the correct API
+            if hasattr(client, 'Model'):
+                model = client.Model.get(id=model_id)
+                if model:
+                    result = model.run(data=prompt)
+                    print(f"[AIXplain] Model response: {result}")
+                    
+                    # Extract the response
+                    if hasattr(result, 'data'):
+                        output = result.data
+                    elif isinstance(result, dict):
+                        output = result.get("data", "")
+                    else:
+                        output = str(result)
+                    
+                    print(f"[AIXplain] Raw response: {output}")
+                    
+                    # Parse the JSON response
+                    try:
+                        decision = json.loads(output)
+                        print(f"[AIXplain] Parsed decision: {decision}")
+                        return decision
+                    except json.JSONDecodeError as e:
+                        print(f"[AIXplain] JSON parsing error: {e}")
+                        return None
+                else:
+                    print(f"Model with ID {model_id} not found")
+                    return None
+            else:
+                print("[AIXplain] No Model found in client")
+                return None
+                
+        except Exception as e:
+            print(f"[AIXplain] API error: {e}")
             return None
-        prompt = f"System: {SYSTEM_DECISION_PROMPT}\nUser: {query}\nAssistant:"
-        out = model.run(input=prompt)
-        text = out.get("output", "") if isinstance(out, dict) else str(out)
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            return json.loads(text[start:end+1])
-    except Exception:
+                
+    except Exception as e:
+        print(f"[AIXplain] Error: {e}")
         return None
-    return None
 
 
 def _parse_dates(query: str) -> List[str]:
-    # very basic YYYY-MM-DD detection
+    """Extract dates in YYYY-MM-DD format from query."""
     return re.findall(r"\d{4}-\d{2}-\d{2}", query)
 
 
 def _decide_with_rules(query: str) -> Dict[str, Any]:
+    """
+    Fallback rule-based decision logic when AIXplain is not available.
+    """
     q = query.lower()
     emails = re.findall(r"[\w\.-]+@[\w\.-]+", query)
-    # Don't automatically assign user_id from query - let it be handled by default_user_id
     dates = _parse_dates(query)
     ids = re.findall(r"[A-Za-z0-9-]{10,}", query)  # rough for message/meeting ids
-    # quoted subject or folder/path
     quoted = re.findall(r"['\"]([^'\"]+)['\"]", query)
 
-    # Onedrive first if 'file' or 'onedrive' mentioned
+    # OneDrive operations
     if any(k in q for k in ["onedrive", "file", "files", "folder", "upload", "download", "list files"]):
         if any(k in q for k in ["upload", "send"]):
             return {
@@ -89,14 +174,13 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
                 "item_path": (quoted[0] if quoted else None),
                 "local_path": (quoted[1] if len(quoted) >= 2 else None),
             }
-        # default list
         return {
             "tool": "onedrive_list",
             "folder_path": (quoted[0] if quoted else None),
             "top": 50,
         }
 
-    # Meeting explicit features
+    # Meeting operations
     if "transcript" in q:
         return {"tool": "meeting_transcript", "meeting_id": ids[0] if ids else None}
     if "attendance" in q:
@@ -108,7 +192,7 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
     if "meeting" in q and ("title" in q or "subject" in q):
         return {"tool": "meeting_by_title", "title": (quoted[0] if quoted else None)}
 
-    # Calendar
+    # Calendar operations
     if any(k in q for k in ["calendar", "meetings", "meeting schedule"]):
         if "organizer" in q and dates:
             return {"tool": "calendar_by_organizer_date", "organizer": (emails[1] if len(emails) > 1 else emails[0] if emails else quoted[0] if quoted else None), "date": dates[0]}
@@ -119,16 +203,11 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
         if dates:
             return {"tool": "calendar_by_date", "date": dates[0]}
 
-    # Email
+    # Email operations
     if "email" in q or "emails" in q or "inbox" in q:
         if "id" in q and ids:
             return {"tool": "email_by_id", "email_ids": ids}
-        # Check for date range first (more specific)
-        if len(dates) >= 2:
-            return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[1]}
-        # Check for sender query (must have email address and single date)
         if "from" in q and dates and len(dates) == 1 and emails and any("@" in email for email in emails):
-            # find sender from email list or quoted
             sender = (emails[1] if len(emails) > 1 else emails[0] if emails else quoted[0] if quoted else None)
             return {"tool": "email_by_sender_date", "sender": sender, "date": dates[0]}
         if "subject" in q and len(dates) >= 1:
@@ -136,18 +215,35 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
             start_date = dates[0]
             end_date = dates[1] if len(dates) > 1 else dates[0]
             return {"tool": "email_by_subject_date_range", "subject": subject, "start_date": start_date, "end_date": end_date}
-        # Single date fallback
+        if len(dates) >= 2:
+            return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[1]}
         if dates:
             return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[0]}
 
-    # fallback
+    # Default fallback
     return {"tool": "onedrive_list", "folder_path": None, "top": 50}
 
 
 def handle_query(query: str, default_user_id: Optional[str] = None) -> Dict[str, Any]:
-    decision = _run_aixplain(query) or _decide_with_rules(query)
+    """
+    Main query handler that uses AIXplain model for intelligent routing.
+    Falls back to rule-based logic if AIXplain is not available.
+    """
+    print(f"[Agent] Processing query: {query}")
+    
+    # Try AIXplain model first
+    decision = _run_aixplain_model(query)
+    
+    # Fall back to rule-based logic if AIXplain fails
+    if not decision:
+        print("[Agent] Using fallback rule-based logic")
+        decision = _decide_with_rules(query)
+    
     tool = decision.get("tool")
     user_id = decision.get("user_id") or default_user_id
+    
+    print(f"[Agent] Selected tool: {tool}")
+    print(f"[Agent] Using user_id: {user_id}")
 
     # Ensure access token and headers only when needed for email calls
     headers = None
@@ -162,6 +258,7 @@ def handle_query(query: str, default_user_id: Optional[str] = None) -> Dict[str,
         # Ensure email ids cache exists
         fetch_last_email_ids(headers, limit=100, user_id=user_id)
     
+    # Execute the selected tool
     if tool == "email_by_id":
         email_ids: List[str] = decision.get("email_ids") or []
         emails = retrieve_emails_by_ids(email_ids, headers, user_id)
@@ -224,5 +321,51 @@ def handle_query(query: str, default_user_id: Optional[str] = None) -> Dict[str,
         return {"tool": tool, "name": item.get("name"), "size": item.get("size")}
 
     raise ValueError(f"Unknown tool decision: {tool}")
+
+
+def test_aixplain_connection():
+    """Test AIXplain connection and model availability."""
+    if not HAS_AIXPLAIN:
+        print("❌ AIXplain not available")
+        return False
+    
+    api_key = os.getenv("AIXPLAIN_API_KEY") or os.getenv("TEAM_API_KEY")
+    if not api_key:
+        print("❌ AIXPLAIN_API_KEY or TEAM_API_KEY not set")
+        return False
+    
+    model_id = os.getenv("AIXPLAIN_MODEL_ID")
+    if not model_id:
+        print("❌ AIXPLAIN_MODEL_ID not set")
+        return False
+    
+    try:
+        # Test the correct AIXplain API structure
+        client = ax.Aixplain()
+        if hasattr(client, 'Model'):
+            print("✅ AIXplain API structure: Model")
+            return True
+        elif hasattr(client, 'Pipeline'):
+            print("✅ AIXplain API structure: Pipeline")
+            return True
+        else:
+            print("❌ Unknown AIXplain API structure")
+            print(f"Available client attributes: {[attr for attr in dir(client) if not attr.startswith('_')]}")
+            return False
+    except Exception as e:
+        print(f"❌ AIXplain connection failed: {e}")
+        return False
+
+
+if __name__ == "__main__":
+    # Test the agent
+    print("Testing AIXplain Agent...")
+    test_aixplain_connection()
+    
+    # Test with a sample query
+    test_query = "emails from 2025-08-01 to 2025-08-13"
+    print(f"\nTesting query: {test_query}")
+    result = handle_query(test_query, "executive.assistant@menadevs.io")
+    print(f"Result: {result}")
 
 
