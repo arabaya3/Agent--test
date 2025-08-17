@@ -61,6 +61,12 @@ Available tools:
 15. onedrive_download - Download a file from OneDrive
 16. onedrive_upload - Upload a file to OneDrive
 
+IMPORTANT RULES:
+- DO NOT provide default dates when the user doesn't specify any dates
+- If a query mentions emails/meetings but doesn't include dates, return an error message asking for dates
+- Only use date-based tools when the user explicitly provides dates in the query
+- Current year is 2025, but only use dates that are explicitly mentioned by the user
+
 Analyze the user query and return a JSON response with:
 - tool: the appropriate tool name
 - Any required parameters (sender, date, start_date, end_date, subject, email_ids, meeting_id, title, item_path, local_path, destination_path, folder_path, top, etc.)
@@ -71,6 +77,9 @@ Response: {"tool": "email_by_sender_date", "sender": "john@example.com", "date":
 
 Query: "meetings from 2025-08-01 to 2025-08-15"
 Response: {"tool": "calendar_by_date_range", "start_date": "2025-08-01", "end_date": "2025-08-15"}
+
+Query: "emails" (no dates specified)
+Response: {"tool": "error", "message": "Please specify a date or date range for email queries. For example: 'emails from 2025-08-01 to 2025-08-15' or 'emails on 2025-08-10'"}
 
 Query: "list files in Documents folder"
 Response: {"tool": "onedrive_list", "folder_path": "Documents", "top": 50}
@@ -219,6 +228,8 @@ def _decide_with_rules(query: str) -> Dict[str, Any]:
             return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[1]}
         if dates:
             return {"tool": "email_by_date_range", "start_date": dates[0], "end_date": dates[0]}
+        # If no dates are provided for email queries, return an error
+        return {"tool": "error", "message": "Please specify a date or date range for email queries. For example: 'emails from 2025-08-01 to 2025-08-15' or 'emails on 2025-08-10'"}
 
     # Default fallback
     return {"tool": "onedrive_list", "folder_path": None, "top": 50}
@@ -259,6 +270,10 @@ def handle_query(query: str, default_user_id: Optional[str] = None) -> Dict[str,
         fetch_last_email_ids(headers, limit=100, user_id=user_id)
     
     # Execute the selected tool
+    if tool == "error":
+        error_message = decision.get("message", "An error occurred")
+        print(f"[Agent] Error: {error_message}")
+        return {"tool": tool, "error": error_message}
     if tool == "email_by_id":
         email_ids: List[str] = decision.get("email_ids") or []
         emails = retrieve_emails_by_ids(email_ids, headers, user_id)
