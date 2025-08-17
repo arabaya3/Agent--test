@@ -96,7 +96,7 @@ Register an Azure AD app and grant it the necessary Microsoft Graph API permissi
 
 See `APPLICATION_PERMISSIONS_README.md` for detailed setup instructions.
 
-## 🎯 Usage
+##  Usage
 
 ### Interactive Menu Interface
 Run the main assistant menu:
@@ -160,7 +160,7 @@ The AI agent can understand natural language queries like:
 - Microsoft 365/Azure AD account with API access
 - AIXplain account (optional - for AI-powered routing)
 
-## 📚 Configuration Files
+##  Configuration Files
 
 - `AIXPLAIN_SETUP.md` - Detailed AIXplain configuration guide
 - `APPLICATION_PERMISSIONS_README.md` - Microsoft Graph API permissions setup
@@ -192,7 +192,7 @@ from onedrive_tools.list_files import list_onedrive_files
 ##  License
 MIT License - see LICENSE file for details
 
-## 🆘 Support
+##  Support
 
 For issues and questions:
 1. Check the configuration guides in the documentation files
