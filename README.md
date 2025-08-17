@@ -4,15 +4,15 @@ A unified Python assistant for retrieving and processing emails, calendar events
 
 ##  Features
 
-- ** AI-Powered Query Routing**: Uses AIXplain models for intelligent query interpretation and tool selection
-- ** Email Management**: Retrieve emails by ID, sender/date, date range, or subject/date range
-- ** Calendar Management**: Retrieve calendar meetings by date, organizer/date, date range, or subject/date range
-- ** Meeting Analytics**: Retrieve meeting details by ID, by title, get transcript, audience, and attendance
-- ** OneDrive Integration**: List, download, and upload files to OneDrive
-- ** Interactive Command-Line Interface**: Menu-driven interface for all features
-- ** Microsoft OAuth2 Authentication**: Device code flow for secure access
-- ** Fallback Rule-Based Logic**: Intelligent routing when AI models are unavailable
-- ** Caching System**: Efficient email ID caching for improved performance
+- **AI-Powered Query Routing**: Uses AIXplain models for intelligent query interpretation and tool selection
+- **Email Management**: Retrieve emails by ID, sender/date, date range, or subject/date range
+- **Calendar Management**: Retrieve calendar meetings by date, organizer/date, date range, or subject/date range
+- **Meeting Analytics**: Retrieve meeting details by ID, by title, get transcript, audience, and attendance
+- **OneDrive Integration**: List, download, and upload files to OneDrive
+- **Interactive Command-Line Interface**: Menu-driven interface for all features
+- **Microsoft OAuth2 Authentication**: Device code flow for secure access
+- **Fallback Rule-Based Logic**: Intelligent routing when AI models are unavailable
+- **Caching System**: Efficient email ID caching for improved performance
 
 ##  Project Structure
 
