@@ -21,8 +21,9 @@ class AdvancedAnalyzer:
         }
         
                           
+        # Prefer full body content when available, fallback to bodyPreview
         all_content = " ".join([
-            email.get("subject", "") + " " + email.get("bodyPreview", "")
+            (email.get("subject", "") + " " + (email.get("body", "") or email.get("bodyPreview", "")))
             for email in emails
         ]).lower()
         
@@ -37,7 +38,7 @@ class AdvancedAnalyzer:
         
                            
         urgent_count = len([e for e in emails if any(
-            keyword in e.get("subject", "").lower() or keyword in e.get("bodyPreview", "").lower()
+            keyword in e.get("subject", "").lower() or keyword in (e.get("body", "") or e.get("bodyPreview", "")).lower()
             for keyword in ["urgent", "asap", "critical", "emergency"]
         )])
         analysis["priority_analysis"]["urgent_emails"] = urgent_count

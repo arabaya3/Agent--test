@@ -1003,9 +1003,15 @@ Return only valid JSON, no additional text.
                 subject = email.get("subject", "No Subject")
                 date = email.get("receivedDateTime", "Unknown")
                 has_attachments = email.get("hasAttachments", False)
-                preview = email.get("bodyPreview", "")[:100] + "..." if email.get("bodyPreview") else "No preview"
+                import re
+                body_text = email.get("body", "") or email.get("bodyPreview", "")
+                if body_text:
+                    body_text = re.sub(r"<[^>]+>", " ", body_text)
+                body_snippet = (body_text[:300] + "...") if body_text else ""
                 
-                email_summaries.append(f"{i}. From: {sender}\n   Subject: {subject}\n   Date: {date}\n   Attachments: {'Yes' if has_attachments else 'No'}\n   Preview: {preview}")
+                email_summaries.append(
+                    f"{i}. From: {sender}\n   Subject: {subject}\n   Date: {date}\n   Attachments: {'Yes' if has_attachments else 'No'}\n   Body: {body_snippet}"
+                )
             
                                         
             prompt = f"""You are an intelligent executive assistant. The user asked: "{original_query}"
@@ -1062,6 +1068,7 @@ Response:"""
         senders = {}
         subjects = []
         attachments = 0
+        combined_bodies = []
         
         for email in emails:
             sender = email.get("from", "Unknown")
@@ -1073,10 +1080,13 @@ Response:"""
             
             if email.get("hasAttachments", False):
                 attachments += 1
+            body_text = email.get("body", "") or email.get("bodyPreview", "")
+            if body_text:
+                combined_bodies.append(body_text)
         
         top_sender = max(senders.items(), key=lambda x: x[1])[0] if senders else "Unknown"
         
-        summary = f"Here are the emails you received yesterday:\n\n"
+        summary = f"Here are your emails:\n\n"
         summary += f"I found {total_emails} email(s) for you. "
         
         if total_emails == 1:
@@ -1089,9 +1099,19 @@ Response:"""
             summary += f"Most emails are from {top_sender} ({senders[top_sender]} emails). "
             if attachments > 0:
                 summary += f"{attachments} email(s) have attachments. "
-            summary += f"Key subjects include: {', '.join(subjects[:3])}"
-            if len(subjects) > 3:
-                summary += f" and {len(subjects) - 3} more."
+            if subjects:
+                summary += f"Key subjects include: {', '.join(subjects[:3])}"
+                if len(subjects) > 3:
+                    summary += f" and {len(subjects) - 3} more."
+        
+        # Extract simple themes from bodies as key points
+        try:
+            from agent.advanced_analyzer import AdvancedAnalyzer
+            themes = AdvancedAnalyzer._extract_themes(" ".join(combined_bodies)) if combined_bodies else []
+            if themes:
+                summary += f"\nKey points: {', '.join(themes[:5])}."
+        except Exception:
+            pass
         
         summary += "\n\nWould you like me to provide more details about any specific email?"
         
@@ -1387,6 +1407,35 @@ class QuestionAnswerer:
         analysis = DataAnalyzer.analyze_emails(emails)
         q = question.lower()
         
+        # Summarization and main points based on body content
+        if any(keyword in q for keyword in ["summarize", "summary", "summarise", "main point", "main points", "key points", "what is the email about", "what are the main", "gist", "summarize the email", "tl;dr"]):
+            bodies: List[str] = []
+            for email in emails:
+                import re
+                body_text = (email.get("body", "") or "").strip()
+                if not body_text:
+                    body_text = (email.get("bodyPreview", "") or "").strip()
+                if not body_text:
+                    body_text = email.get("subject", "")
+                if body_text:
+                    bodies.append(re.sub(r"<[^>]+>", " ", body_text))
+            if not bodies:
+                return "I couldn't find body content to summarize."
+
+            combined = "\n\n".join(bodies)
+            import re
+            sentences = re.split(r"(?<=[.!?])\s+", combined)
+            selected = [s.strip() for s in sentences if s.strip()][:3]
+            summary_text = " ".join(selected)
+            try:
+                from agent.advanced_analyzer import AdvancedAnalyzer
+                themes = AdvancedAnalyzer._extract_themes(combined)
+            except Exception:
+                themes = []
+            if themes:
+                return f"Summary: {summary_text}\nMain points: {', '.join(themes[:5])}."
+            return f"Summary: {summary_text}"
+        
         if "how many" in q and "email" in q:
             return f"There are {analysis['count']} emails in the dataset."
         
@@ -1405,7 +1454,8 @@ class QuestionAnswerer:
             urgent_count = 0
             for email in emails:
                 subject = email.get("subject", "").lower()
-                if any(keyword in subject for keyword in urgent_keywords):
+                body_text = (email.get("body", "") or email.get("bodyPreview", "")).lower()
+                if any(keyword in subject or keyword in body_text for keyword in urgent_keywords):
                     urgent_count += 1
             return f"There are {urgent_count} potentially urgent emails."
         
