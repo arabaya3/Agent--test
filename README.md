@@ -1,201 +1,110 @@
-# Core Assistant Pipeline
+# 🤖 AIXPLAIN ENHANCED SMART EXECUTIVE ASSISTANT
 
-A unified Python assistant for retrieving and processing emails, calendar events, meetings, and OneDrive files using the Microsoft Graph API with AI-powered query routing.
+An intelligent executive assistant that retrieves and analyzes Emails, Meetings/Calendar, and OneDrive Files via Microsoft Graph, with AIXplain-powered conversational intelligence, follow-up chats, name resolution, and smart date handling.
 
-##  Features
+## 🚀 Highlights
 
-- **AI-Powered Query Routing**: Uses AIXplain models for intelligent query interpretation and tool selection
-- **Email Management**: Retrieve emails by ID, sender/date, date range, or subject/date range
-- **Calendar Management**: Retrieve calendar meetings by date, organizer/date, date range, or subject/date range
-- **Meeting Analytics**: Retrieve meeting details by ID, by title, get transcript, audience, and attendance
-- **OneDrive Integration**: List, download, and upload files to OneDrive
-- **Interactive Command-Line Interface**: Menu-driven interface for all features
-- **Microsoft OAuth2 Authentication**: Device code flow for secure access
-- **Fallback Rule-Based Logic**: Intelligent routing when AI models are unavailable
-- **Caching System**: Efficient email ID caching for improved performance
+- Real-time awareness (current date/time, relative dates)
+- Conversational chat with follow-ups (context memory)
+- Name-based queries (use names instead of emails)
+- Intelligent “last email” detection (beyond just yesterday)
+- Retrieval + analysis for emails, meetings, and files
+- AIXplain GPT integration with graceful rule-based fallback
 
-##  Project Structure
+## 📦 Project Structure (simplified)
 
 ```
-Core-Assistant-Pipeline/
+aiXpalin-Executive-Assistant-PoC/
 ├── agent/
-│   ├── core_agent.py              # AI-powered query router and main agent
-│   └── __init__.py
-├── assistant_retriever_master.py  # Main entry point (menu for all tools)
-├── email_tools/
-│   ├── by_id.py                   # Retrieve emails by specific IDs
-│   ├── by_sender_date.py          # Retrieve emails from sender on date
-│   ├── by_date_range.py           # Retrieve emails within date range
-│   ├── by_subject_date_range.py   # Retrieve emails by subject and date range
-│   ├── shared_email_ids.py        # Shared email ID caching utilities
-│   └── __init__.py
-├── calendar_tools/
-│   ├── by_date.py                 # Get meetings on specific date
-│   ├── by_organizer_date.py       # Get meetings by organizer on date
-│   ├── by_date_range.py           # Get meetings within date range
-│   ├── by_subject_date_range.py   # Get meetings by subject and date range
-│   └── __init__.py
-├── meeting_tools/
-│   ├── by_id.py                   # Get meeting details by ID
-│   ├── by_title.py                # Get meetings by title
-│   ├── transcript.py              # Get meeting transcript by meeting ID
-│   ├── audience.py                # Get meeting attendees by meeting ID
-│   ├── attendance.py              # Get meeting attendance reports by meeting ID
-│   └── __init__.py
-├── onedrive_tools/
-│   ├── list_files.py              # List files in OneDrive folder
-│   ├── retrieve_files.py          # Download files from OneDrive
-│   ├── upload_files.py            # Upload files to OneDrive
-│   └── __init__.py
-├── shared/
-│   ├── auth.py                    # Microsoft Graph authentication utilities
-│   ├── shared_files_simple.py     # Shared file utilities
-│   └── __init__.py
-├── .env                           # Environment variables (create this)
-├── requirements.txt               # Python dependencies
-├── AIXPLAIN_SETUP.md              # AIXplain configuration guide
-├── APPLICATION_PERMISSIONS_README.md # Microsoft Graph permissions guide
-├── ENV_SETUP_INSTRUCTIONS.md      # Environment setup instructions
-├── .gitignore                     # Git ignore rules
-└── README.md                      # This file
+│   ├── enhanced_smart_agent.py     # Single agent file (EnhancedSmartAgent)
+│   └── advanced_analyzer.py        # Deeper insights (used by enhanced agent)
+├── enhanced_assistant_master.py    # Single entry point (interactive/batch/demo)
+├── email_tools/                    # Email retrieval helpers
+├── calendar_tools/                 # Calendar/meeting retrieval helpers
+├── meeting_tools/                  # Meeting details/transcript/attendance
+├── onedrive_tools/                 # OneDrive list/retrieve/upload
+├── shared/                         # Auth and shared utilities
+├── requirements.txt
+├── env_template.txt                # Copy to .env and fill in
+├── AIXPLAIN_SETUP.md               # Optional: AIXplain setup guide
+├── APPLICATION_PERMISSIONS_README.md  # Microsoft Graph permissions
+├── ENV_SETUP_INSTRUCTIONS.md       # Environment setup guide
+└── README.md                       # This file
 ```
 
-##  Setup
+## ⚙️ Setup
 
-### 1. Clone the Repository
-```bash
-git clone <your-repo-url>
-cd Core-Assistant-Pipeline
-```
-
-### 2. Install Dependencies
+1) Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-Create a `.env` file in the project root with the following variables:
-
+2) Create `.env` (copy from `env_template.txt`) and fill:
 ```env
-# Microsoft Graph API Configuration
-CLIENT_ID=your_azure_app_client_id
-TENANT_ID=your_azure_tenant_id
+# Microsoft Graph API
+CLIENT_ID=your_client_id
+TENANT_ID=your_tenant_id
 
-# AIXplain Configuration (Optional - for AI-powered routing)
+# AIXplain (optional but recommended)
 AIXPLAIN_API_KEY=your_aixplain_api_key
-AIXPLAIN_MODEL_ID=your_aixplain_model_id
-TEAM_API_KEY=your_team_api_key
+AIXPLAIN_MODEL_ID=gpt-4  # e.g. gpt-4, gpt-3.5-turbo, claude-3-sonnet
+
+# Default user (for application permissions flows)
+DEFAULT_USER_ID=executive.assistant@menadevs.io
 ```
 
-### 4. Azure AD App Registration
-Register an Azure AD app and grant it the necessary Microsoft Graph API permissions:
-- `Mail.Read` - For email operations
-- `Calendars.Read` - For calendar operations  
-- `OnlineMeetings.Read.All` - For meeting operations
-- `Files.ReadWrite.All` - For OneDrive operations
+3) Grant Microsoft Graph permissions (see `APPLICATION_PERMISSIONS_README.md`)
 
-See `APPLICATION_PERMISSIONS_README.md` for detailed setup instructions.
+## ▶️ Run
 
-##  Usage
-
-### Interactive Menu Interface
-Run the main assistant menu:
+Interactive assistant (chat + retrieval + analysis):
 ```bash
-python assistant_retriever_master.py
-```
-Follow the interactive prompts to use email, calendar, meeting, or OneDrive tools.
-
-### AI-Powered Agent
-Use the intelligent agent for natural language queries:
-```bash
-python -c "from agent.core_agent import handle_query; print(handle_query('emails from john@example.com on 2025-08-10'))"
+python enhanced_assistant_master.py
 ```
 
-### Example Queries
-The AI agent can understand natural language queries like:
-- "emails from john@example.com on 2025-08-10"
-- "meetings from 2025-08-01 to 2025-08-15"
+Useful commands inside interactive mode:
+- `help` shows examples
+- `time` shows current date/time
+- `user` switches the target user ID
+- `quit` exits
+
+## 💬 Example Queries
+
+Email:
+- "emails from John"
+- "last email"
+- "recent emails"
+- "who sent the most emails last week"
+
+Meetings:
+- "meetings this week"
+- "meetings with Mike"
+- "who organized the most meetings last month"
+
+Files:
 - "list files in Documents folder"
-- "download file.txt from OneDrive"
-- "upload report.pdf to OneDrive"
-- "get meeting transcript for meeting-id-123"
-- "show attendance for meeting-id-456"
+- "recent files"
+- "large files"
 
-##  Available Tools
+Follow-ups:
+- After: "emails from John" → "what about Sarah?"
+- "and Mike too"
+- "also show me recent files"
 
-### Email Tools
-- `email_by_id` - Retrieve emails by specific IDs
-- `email_by_sender_date` - Retrieve emails from a specific sender on a specific date
-- `email_by_date_range` - Retrieve emails within a date range
-- `email_by_subject_date_range` - Retrieve emails with specific subject within a date range
+## 🧠 How it Works (brief)
 
-### Calendar Tools
-- `calendar_by_date` - Get meetings on a specific date
-- `calendar_by_organizer_date` - Get meetings organized by someone on a specific date
-- `calendar_by_date_range` - Get meetings within a date range
-- `calendar_by_subject_date_range` - Get meetings with specific subject within a date range
+- Single agent: `agent/enhanced_smart_agent.py` (EnhancedSmartAgent)
+  - AIXplain model for intent + rule-based fallback
+  - Real-time date parsing and smart “last email” ranges
+  - NameResolver to map names → emails
+  - Conversation memory for follow-ups
+  - AdvancedAnalyzer for natural-language insights
 
-### Meeting Tools
-- `meeting_by_id` - Get meeting details by ID
-- `meeting_by_title` - Get meetings by title
-- `meeting_transcript` - Get meeting transcript by meeting ID
-- `meeting_audience` - Get meeting attendees by meeting ID
-- `meeting_attendance` - Get meeting attendance reports by meeting ID
+## 🔐 Notes
 
-### OneDrive Tools
-- `onedrive_list` - List files in OneDrive folder
-- `onedrive_download` - Download a file from OneDrive
-- `onedrive_upload` - Upload a file to OneDrive
+- Ensure Azure AD app has required Graph permissions (Mail.Read, Calendars.Read, Files.Read, etc.)
+- AIXplain is optional; the agent falls back to rules if not configured
 
-##  Dependencies
+## 📄 License
 
-### Required Python Packages
-- **msal** (>=1.20.0) - Microsoft Authentication Library for OAuth2
-- **python-dotenv** (>=1.0.0) - Environment variable management
-- **aixplain** (>=0.1.0) - AI-powered query routing
-- **requests** (>=2.28.0) - HTTP requests for API calls
-
-### System Requirements
-- Python 3.7+
-- Microsoft 365/Azure AD account with API access
-- AIXplain account (optional - for AI-powered routing)
-
-##  Configuration Files
-
-- `AIXPLAIN_SETUP.md` - Detailed AIXplain configuration guide
-- `APPLICATION_PERMISSIONS_README.md` - Microsoft Graph API permissions setup
-- `ENV_SETUP_INSTRUCTIONS.md` - Environment variable configuration guide
-
-## 🔧 Development
-
-### Testing the Agent
-```bash
-python -c "from agent.core_agent import test_aixplain_connection; test_aixplain_connection()"
-```
-
-### Running Individual Tools
-Each tool can be imported and used independently:
-```python
-from email_tools.by_date_range import retrieve_emails_by_date_range
-from calendar_tools.by_date import retrieve_meetings_by_date
-from onedrive_tools.list_files import list_onedrive_files
-```
-
-##  Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-##  License
-MIT License - see LICENSE file for details
-
-##  Support
-
-For issues and questions:
-1. Check the configuration guides in the documentation files
-2. Verify your Azure AD app permissions
-3. Ensure all dependencies are installed
-4. Check your `.env` file configuration 
+MIT License – see `LICENSE`

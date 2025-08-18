@@ -5,18 +5,22 @@ This document explains the changes made to migrate from delegated permissions to
 ## What Changed
 
 ### 1. Authentication Method
+
 - **Before**: Used delegated permissions with device flow authentication (`msal.PublicClientApplication`)
 - **After**: Uses application permissions with client credentials flow (`msal.ConfidentialClientApplication`)
 
 ### 2. API Endpoints
+
 - **Before**: Used `/me/*` endpoints (user-specific)
 - **After**: Uses `/users/{user-id}/*` endpoints (application can access any user's data)
 
 ### 3. Function Signatures
+
 - **Before**: Functions like `retrieve_emails_by_date_range(date, headers, email_ids)`
 - **After**: Functions now accept `user_id` parameter: `retrieve_emails_by_date_range(date, headers, email_ids, user_id)`
 
 ### 4. Required Environment Variables
+
 You need to set these environment variables in your `.env` file:
 
 ```bash
@@ -30,6 +34,7 @@ DEFAULT_USER_ID=executive.assistant@menadevs.io
 ## How to Use
 
 ### 1. Set Up Environment Variables
+
 Create a `.env` file in the root directory with your Azure app registration details:
 
 ```bash
@@ -40,19 +45,23 @@ DEFAULT_USER_ID=executive.assistant@menadevs.io
 ```
 
 ### 2. Grant Admin Consent
+
 In Azure Portal, make sure to:
+
 1. Go to your app registration
 2. Navigate to "API permissions"
 3. Click "Grant admin consent for [Your Organization]"
 4. Ensure all required permissions show "Granted for [Your Organization]"
 
 ### 3. Run the Application
+
 The application automatically uses `executive.assistant@menadevs.io` as the default user ID for all operations, eliminating the need to manually enter a user ID each time.
 
 ### 4. User ID Configuration
+
 - **Default User ID**: `executive.assistant@menadevs.io` (can be configured in `.env` file via `DEFAULT_USER_ID`)
 - **Email operations (1-4)**: Uses default user ID automatically
-- **Calendar operations (5-8)**: Uses default user ID automatically  
+- **Calendar operations (5-8)**: Uses default user ID automatically
 - **Meeting operations (9-13)**: Uses default user ID automatically
 - **Customization**: To use a different user ID, add `DEFAULT_USER_ID=your_email@domain.com` to your `.env` file
 
@@ -61,14 +70,17 @@ The application automatically uses `executive.assistant@menadevs.io` as the defa
 Based on the Azure portal screenshot, ensure your app has these **Application** permissions:
 
 ### Calendar Permissions
+
 - `Calendars.Read.All` - Read calendars in all mailboxes
 - `Calendars.ReadWrite.All` - Read and write calendars in all mailboxes
 
 ### Email Permissions
+
 - `Mail.Read.All` - Read mail in all mailboxes
 - `Mail.ReadWrite.All` - Read and write mail in all mailboxes
 
 ### Meeting Permissions
+
 - `CallTranscripts.Read.All` - Read all call transcripts
 - `OnlineMeetings.Read.All` - Read all online meetings
 
@@ -91,10 +103,12 @@ Based on the Azure portal screenshot, ensure your app has these **Application** 
 ### Common Issues
 
 1. **"Insufficient privileges" error**
+
    - Ensure admin consent has been granted
    - Check that the correct permission types (Application vs Delegated) are configured
 
 2. **"Invalid client" error**
+
    - Verify CLIENT_ID and CLIENT_SECRET are correct
    - Ensure the client secret hasn't expired
 
@@ -105,6 +119,7 @@ Based on the Azure portal screenshot, ensure your app has these **Application** 
 ### Testing
 
 To test the setup:
+
 1. Run the main application: `python assistant_retriever_master.py`
 2. Choose any email option (1-4)
 3. Enter a valid user ID or email address
@@ -121,13 +136,15 @@ To test the setup:
 
 ## Updated Tools
 
-### Email Tools ✅
+### Email Tools
+
 - `by_id.py` - Retrieve emails by ID list
 - `by_sender_date.py` - Retrieve emails by sender and date
 - `by_date_range.py` - Retrieve emails by date range
 - `by_subject_date_range.py` - Retrieve emails by subject and date range
 
-### Email Retrieval Improvements ✅
+### Email Retrieval Improvements
+
 - **No Duplicate Emails**: Implemented conversation-level deduplication to prevent duplicate emails
 - **Always Include Main Email**: Removed user prompts - main email and all replies are always included
 - **Conversation Threading**: Each email retrieval now includes the complete conversation thread
@@ -135,13 +152,15 @@ To test the setup:
 - **Global Deduplication**: Prevents processing the same conversation multiple times across search results
 - **Accurate Reporting**: Shows both total emails found and unique conversations processed
 
-### Calendar Tools ✅
+### Calendar Tools
+
 - `by_date.py` - Get meetings by date
 - `by_organizer_date.py` - Retrieve meetings by organizer and date
 - `by_date_range.py` - Retrieve all meetings within date range
 - `by_subject_date_range.py` - Retrieve meetings by subject and date range
 
-### Meeting Tools ✅
+### Meeting Tools
+
 - `by_id.py` - Get meeting by ID
 - `by_title.py` - Get meeting by title
 - `transcript.py` - Get transcript from meeting ID
