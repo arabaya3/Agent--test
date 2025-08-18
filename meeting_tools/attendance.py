@@ -25,7 +25,7 @@ def get_attendance_by_meeting_id(meeting_id, headers, user_id=None):
         if not reports:
             print("No attendance report available for this meeting.")
             return None
-        # Output all attendance reports (usually only one)
+                                                          
         return reports
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving attendance: {e}")

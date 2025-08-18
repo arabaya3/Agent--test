@@ -31,7 +31,7 @@ def search_meetings_by_organizer_date(organizer, date, headers, user_id=None):
             
             meetings = data.get("value", [])
             
-            # Filter meetings by organizer
+                                          
             filtered_meetings = []
             for meeting in meetings:
                 meeting_organizer = meeting.get("organizer", {}).get("emailAddress", {}).get("address", "")

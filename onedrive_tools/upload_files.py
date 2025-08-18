@@ -22,7 +22,7 @@ def _build_headers() -> Dict[str, str]:
 
 
 def _normalize_path(path_value: str) -> str:
-    # Graph paths use forward slashes
+                                     
     return (path_value or "").replace("\\", "/").lstrip("/")
 
 
@@ -56,23 +56,6 @@ def upload_onedrive_file(
     chunk_size_bytes: int = 5 * 1024 * 1024,
     timeout_seconds: int = 120,
 ) -> Dict[str, Any]:
-    """
-    Upload a file to OneDrive using Microsoft Graph with application permissions.
-
-    Automatically chooses simple upload for files <= 4MB and chunked upload for larger files.
-
-    Args:
-        file_path: Local path to the file to upload.
-        destination_path: Target OneDrive path including file name, e.g. "Documents/report.pdf".
-        user_id: Azure AD object id or UPN of the target user who owns the OneDrive.
-        drive_id: Drive ID if targeting a specific drive instead of user.
-        conflict_behavior: One of "replace", "rename", or "fail".
-        chunk_size_bytes: Chunk size for large file uploads.
-        timeout_seconds: Request timeout for each HTTP call.
-
-    Returns:
-        The final driveItem JSON as a dict on success.
-    """
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     if not destination_path:
@@ -83,7 +66,7 @@ def upload_onedrive_file(
     file_size = os.path.getsize(file_path)
     headers = _build_headers()
 
-    # Simple upload for small files (<= 4MB)
+                                            
     if file_size <= 4 * 1024 * 1024:
         url = _resolve_simple_upload_url(user_id=user_id, drive_id=drive_id, item_path=destination_path)
         with open(file_path, "rb") as fp:
@@ -99,7 +82,7 @@ def upload_onedrive_file(
             raise RuntimeError(f"Simple upload failed: {resp.status_code} {err_msg}")
         return resp.json()
 
-    # Large file upload via upload session
+                                          
     session_url = _resolve_session_url(user_id=user_id, drive_id=drive_id, item_path=destination_path)
     session_body = {
         "item": {
@@ -140,15 +123,15 @@ def upload_onedrive_file(
 
             put_resp = requests.put(upload_url, headers=chunk_headers, data=chunk, timeout=timeout_seconds)
             if put_resp.status_code in (200, 201):
-                # Completed
+                           
                 return put_resp.json()
             if put_resp.status_code not in (202,):
                 raise RuntimeError(f"Chunk upload failed: {put_resp.status_code} {put_resp.text}")
 
-            # 202 Accepted - get next expected ranges and continue
+                                                                  
             bytes_uploaded = end_index + 1
 
-    # If we exit the loop without returning, attempt to finalize by querying session
+                                                                                    
     status_resp = requests.get(upload_url, headers=headers, timeout=timeout_seconds)
     if status_resp.status_code in (200, 201):
         return status_resp.json()
@@ -180,7 +163,7 @@ if __name__ == "__main__":
             chunk_size_bytes=args.chunk_size,
             timeout_seconds=args.timeout,
         )
-        # Print a concise summary and the raw item JSON for reference
+                                                                     
         summary = {
             "id": result.get("id"),
             "name": result.get("name"),

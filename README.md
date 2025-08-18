@@ -1,8 +1,8 @@
-# 🤖 AIXPLAIN ENHANCED SMART EXECUTIVE ASSISTANT
+# AIXPLAIN ENHANCED SMART EXECUTIVE ASSISTANT
 
 An intelligent executive assistant that retrieves and analyzes Emails, Meetings/Calendar, and OneDrive Files via Microsoft Graph, with AIXplain-powered conversational intelligence, follow-up chats, name resolution, and smart date handling.
 
-## 🚀 Highlights
+## Highlights
 
 - Real-time awareness (current date/time, relative dates)
 - Conversational chat with follow-ups (context memory)
@@ -11,7 +11,7 @@ An intelligent executive assistant that retrieves and analyzes Emails, Meetings/
 - Retrieval + analysis for emails, meetings, and files
 - AIXplain GPT integration with graceful rule-based fallback
 
-## 📦 Project Structure (simplified)
+## Project Structure (simplified)
 
 ```
 aiXpalin-Executive-Assistant-PoC/
@@ -32,7 +32,7 @@ aiXpalin-Executive-Assistant-PoC/
 └── README.md                       # This file
 ```
 
-## ⚙️ Setup
+## Setup
 
 1) Install dependencies
 ```bash
@@ -55,7 +55,7 @@ DEFAULT_USER_ID=executive.assistant@menadevs.io
 
 3) Grant Microsoft Graph permissions (see `APPLICATION_PERMISSIONS_README.md`)
 
-## ▶️ Run
+## Run
 
 Interactive assistant (chat + retrieval + analysis):
 ```bash
@@ -68,7 +68,7 @@ Useful commands inside interactive mode:
 - `user` switches the target user ID
 - `quit` exits
 
-## 💬 Example Queries
+## Example Queries
 
 Email:
 - "emails from John"
@@ -91,7 +91,7 @@ Follow-ups:
 - "and Mike too"
 - "also show me recent files"
 
-## 🧠 How it Works (brief)
+## How it Works (brief)
 
 - Single agent: `agent/enhanced_smart_agent.py` (EnhancedSmartAgent)
   - AIXplain model for intent + rule-based fallback
@@ -100,11 +100,11 @@ Follow-ups:
   - Conversation memory for follow-ups
   - AdvancedAnalyzer for natural-language insights
 
-## 🔐 Notes
+## Notes
 
 - Ensure Azure AD app has required Graph permissions (Mail.Read, Calendars.Read, Files.Read, etc.)
 - AIXplain is optional; the agent falls back to rules if not configured
 
-## 📄 License
+## License
 
 MIT License – see `LICENSE`

@@ -33,18 +33,6 @@ def list_onedrive_files(
     folder_path: Optional[str] = None,
     top: int = 100,
 ) -> List[Dict[str, Any]]:
-    """
-    List items in a OneDrive folder using Microsoft Graph with application permissions.
-
-    Args:
-        user_id: Target user's UPN/email or object ID. Provide this OR drive_id.
-        drive_id: Target drive ID if not using user_id.
-        folder_path: Relative folder path (e.g., "Documents/Reports"). Empty or None for root.
-        top: Max items to return (pagination handled until reaching 'top' or no next link).
-
-    Returns:
-        A list of driveItem dicts.
-    """
     if not user_id and not drive_id:
         raise ValueError("Either user_id or drive_id must be provided")
 

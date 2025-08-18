@@ -48,7 +48,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     import time
     base_url = "https://graph.microsoft.com/v1.0"
     
-    # For application permissions, we need to specify a user ID
+                                                               
     if user_id:
         user_prefix = f"users/{user_id}"
     else:
@@ -185,10 +185,10 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
     print("============================================================")
     print("Email ID Retriever (with Conversation Thread)")
     print("============================================================")
-    # Always include main email and all replies (no user prompt needed)
+                                                                       
     all_conversation_emails = []
-    processed_conversation_ids = set()  # Track processed conversations to avoid duplicates
-    unique_conversations_processed = 0  # Count unique conversations actually processed
+    processed_conversation_ids = set()                                                     
+    unique_conversations_processed = 0                                                 
     for i, email_id in enumerate(email_ids, 1):
         print(f"Retrieving email {i}/{len(email_ids)}: {email_id}")
         email_data = get_email_by_id(email_id, headers, user_id)
@@ -200,7 +200,7 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
             print(f"✗ No conversationId found for email {email_id}")
             continue
             
-        # Skip if we've already processed this conversation
+                                                           
         if conversation_id in processed_conversation_ids:
             print(f"✗ Conversation already processed, skipping")
             continue
@@ -212,10 +212,10 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
             
-        # Build a dict to deduplicate by ID (include original email and all conversation messages)
+                                                                                                  
         msg_dict = {}
         
-        # Add the original email first
+                                      
         orig_id = str(email_data.get("id")).lower()
         msg_dict[orig_id] = {
             "id": email_data.get("id"),
@@ -227,7 +227,7 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
             "conversationId": email_data.get("conversationId")
         }
         
-        # Add all conversation messages (this will overwrite the original if it's duplicated)
+                                                                                             
         for msg in conversation_messages:
             msg_id = str(msg.get("id")).lower()
             msg_dict[msg_id] = {
@@ -282,8 +282,8 @@ def main():
     email_ids = get_cached_email_ids(limit=limit)
     emails_info = []
     for eid in email_ids:
-        # Note: This is the main function, so we can't use user_id here
-        # This would need to be updated if called from the main application
+                                                                       
+                                                                           
         url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject"
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -315,12 +315,12 @@ def main():
     if not selected_ids:
         print("No valid email numbers selected.")
         return
-    emails = retrieve_emails_by_ids(selected_ids, headers, None)  # No user_id in standalone mode
+    emails = retrieve_emails_by_ids(selected_ids, headers, None)                                 
     if not emails:
         print("\nNo emails were retrieved. Would you like to see recent email IDs to try again? (y/n): ", end="")
         retry = input().strip().lower()
         if retry == 'y':
-            get_recent_email_ids(headers, 10, None)  # No user_id in standalone mode
+            get_recent_email_ids(headers, 10, None)                                 
 
 if __name__ == "__main__":
     main() 

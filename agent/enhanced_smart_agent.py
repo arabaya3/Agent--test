@@ -6,16 +6,16 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import requests
 
-# Load environment variables
+                            
 load_dotenv()
 
 try:
     import aixplain as ax
     HAS_AIXPLAIN = True
-    # Configure AIXplain with API key
+                                     
     api_key = os.getenv("AIXPLAIN_API_KEY") or os.getenv("TEAM_API_KEY")
     if api_key:
-        # Set the API key for AIXplain
+                                      
         os.environ["TEAM_API_KEY"] = api_key
 except Exception as e:
     print(f"Warning: AIXplain not available: {e}")
@@ -43,23 +43,21 @@ from agent.advanced_analyzer import AdvancedAnalyzer
 
 
 class NameResolver:
-    """Resolves names to email addresses and handles name-based queries."""
     
     def __init__(self):
         self.name_to_email_cache = {}
         self.email_to_name_cache = {}
     
     def extract_names_from_query(self, query: str) -> List[str]:
-        """Extract potential names from a query."""
-        # Common name patterns
+                              
         name_patterns = [
-            r'\b[A-Z][a-z]+ [A-Z][a-z]+\b',  # First Last
-            r'\b[A-Z][a-z]+\b',  # Single name
-            r'from ([A-Z][a-z]+)',  # "from John"
-            r'by ([A-Z][a-z]+)',  # "by Sarah"
-            r'with ([A-Z][a-z]+)',  # "with Mike"
-            r'from ([A-Z]+ [A-Z][a-z]+)',  # "from ABDEL Rahman"
-            r'from ([A-Z]+)',  # "from ABDEL"
+            r'\b[A-Z][a-z]+ [A-Z][a-z]+\b',              
+            r'\b[A-Z][a-z]+\b',               
+            r'from ([A-Z][a-z]+)',               
+            r'by ([A-Z][a-z]+)',              
+            r'with ([A-Z][a-z]+)',               
+            r'from ([A-Z]+ [A-Z][a-z]+)',                       
+            r'from ([A-Z]+)',                
         ]
         
         names = []
@@ -67,22 +65,22 @@ class NameResolver:
             matches = re.findall(pattern, query)
             names.extend(matches)
         
-        # Remove duplicates and common words
+                                            
         common_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'last', 'this', 'that', 'these', 'those'}
         names = [name for name in names if name.lower() not in common_words]
         
-        # Handle special cases like "ABDEL Rahman"
+                                                  
         processed_names = []
         for name in names:
-            # If it's a multi-word name, keep it as is
+                                                      
             if ' ' in name:
                 processed_names.append(name)
-            # If it's a single word, check if it's part of a larger name
+                                                                        
             else:
-                # Look for patterns like "ABDEL Rahman" in the original query
+                                                                             
                 full_name_pattern = rf'\b{name}\s+[A-Z][a-z]+\b'
                 if re.search(full_name_pattern, query):
-                    # Extract the full name
+                                           
                     full_match = re.search(full_name_pattern, query)
                     if full_match:
                         processed_names.append(full_match.group())
@@ -92,16 +90,15 @@ class NameResolver:
         return list(set(processed_names))
     
     def resolve_name_to_email(self, name: str, user_id: str = None) -> Optional[str]:
-        """Resolve a name to an email address."""
-        # Check cache first
+                           
         if name in self.name_to_email_cache:
             return self.name_to_email_cache[name]
         
-        # Try to find email in recent data
-        # This would typically query a contacts database or recent emails
-        # For now, we'll use a simple mapping approach
+                                          
+                                                                         
+                                                      
         
-        # Common name mappings (in a real system, this would be dynamic)
+                                                                        
         name_mappings = {
             'john': 'john.doe@example.com',
             'jane': 'jane.smith@example.com',
@@ -119,7 +116,7 @@ class NameResolver:
             'ABDEL rahman': 'abdel.rahman@example.com',
         }
         
-        # Try exact match first, then lowercase
+                                               
         email = name_mappings.get(name) or name_mappings.get(name.lower())
         if email:
             self.name_to_email_cache[name] = email
@@ -128,15 +125,14 @@ class NameResolver:
         return email
     
     def resolve_email_to_name(self, email: str) -> Optional[str]:
-        """Resolve an email address to a name."""
-        # Check cache first
+                           
         if email in self.email_to_name_cache:
             return self.email_to_name_cache[email]
         
-        # Extract name from email
+                                 
         if '@' in email:
             username = email.split('@')[0]
-            # Convert username to readable name
+                                               
             name = username.replace('.', ' ').replace('_', ' ').title()
             self.email_to_name_cache[email] = name
             self.name_to_email_cache[name] = email
@@ -145,7 +141,6 @@ class NameResolver:
         return None
     
     def smart_name_extraction(self, query: str) -> Dict[str, str]:
-        """Extract names and resolve them to emails from a query."""
         names = self.extract_names_from_query(query)
         resolved = {}
         
@@ -158,66 +153,63 @@ class NameResolver:
 
 
 class RealTimeProcessor:
-    """Handles real-time date processing and context awareness."""
     
     @staticmethod
     def get_current_time() -> datetime:
-        """Get current date and time."""
         return datetime.now()
     
     @staticmethod
     def parse_relative_dates(query: str) -> List[str]:
-        """Parse relative date references in natural language with intelligent last email detection."""
         current_date = datetime.now()
         dates = []
         
         query_lower = query.lower()
         
-        # Today
+               
         if "today" in query_lower:
             dates.append(current_date.strftime("%Y-%m-%d"))
         
-        # Yesterday
+                   
         if "yesterday" in query_lower:
             yesterday = current_date - timedelta(days=1)
             dates.append(yesterday.strftime("%Y-%m-%d"))
         
-        # Tomorrow
+                  
         if "tomorrow" in query_lower:
             tomorrow = current_date + timedelta(days=1)
             dates.append(tomorrow.strftime("%Y-%m-%d"))
         
-        # Last email - intelligent detection
+                                            
         if "last email" in query_lower or "last emails" in query_lower:
-            # Start with a broader range and let the system find the actual last email
-            # Look back up to 30 days to find the most recent email
+                                                                                      
+                                                                   
             start_date = current_date - timedelta(days=30)
             dates.extend([start_date.strftime("%Y-%m-%d"), current_date.strftime("%Y-%m-%d")])
         
-        # Recent emails
+                       
         if "recent" in query_lower and ("email" in query_lower or "emails" in query_lower):
-            # Look back 7 days for recent emails
+                                                
             start_date = current_date - timedelta(days=7)
             dates.extend([start_date.strftime("%Y-%m-%d"), current_date.strftime("%Y-%m-%d")])
         
-        # Last week
+                   
         if "last week" in query_lower:
             end_date = current_date - timedelta(days=current_date.weekday() + 1)
             start_date = end_date - timedelta(days=7)
             dates.extend([start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")])
         
-        # This week
+                   
         if "this week" in query_lower:
             start_date = current_date - timedelta(days=current_date.weekday())
             dates.extend([start_date.strftime("%Y-%m-%d"), current_date.strftime("%Y-%m-%d")])
         
-        # Next week
+                   
         if "next week" in query_lower:
             start_date = current_date + timedelta(days=7-current_date.weekday())
             end_date = start_date + timedelta(days=6)
             dates.extend([start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")])
         
-        # Last month
+                    
         if "last month" in query_lower:
             if current_date.month == 1:
                 last_month = current_date.replace(year=current_date.year-1, month=12)
@@ -227,12 +219,12 @@ class RealTimeProcessor:
             end_date = current_date.replace(day=1) - timedelta(days=1)
             dates.extend([start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")])
         
-        # This month
+                    
         if "this month" in query_lower:
             start_date = current_date.replace(day=1)
             dates.extend([start_date.strftime("%Y-%m-%d"), current_date.strftime("%Y-%m-%d")])
         
-        # Next month
+                    
         if "next month" in query_lower:
             if current_date.month == 12:
                 next_month = current_date.replace(year=current_date.year+1, month=1)
@@ -249,7 +241,6 @@ class RealTimeProcessor:
     
     @staticmethod
     def get_context_info() -> Dict[str, Any]:
-        """Get current context information."""
         now = datetime.now()
         return {
             "current_date": now.strftime("%Y-%m-%d"),
@@ -263,7 +254,6 @@ class RealTimeProcessor:
 
 
 class ChatBot:
-    """Handles conversational AI using AIXPLAIN GPT models with follow-up capabilities."""
     
     def __init__(self):
         self.api_key = os.getenv("AIXPLAIN_API_KEY") or os.getenv("TEAM_API_KEY")
@@ -278,10 +268,9 @@ class ChatBot:
         }
         
     def _get_chat_prompt(self, user_message: str, context: Dict[str, Any]) -> str:
-        """Generate a chat prompt with context and conversation history."""
         context_info = RealTimeProcessor.get_context_info()
         
-        # Build conversation history for context
+                                                
         recent_history = self.conversation_history[-5:] if len(self.conversation_history) > 5 else self.conversation_history
         history_text = ""
         if recent_history:
@@ -289,7 +278,7 @@ class ChatBot:
             for entry in recent_history:
                 history_text += f"User: {entry['user']}\nAssistant: {entry['assistant']}\n"
         
-        # Add context memory
+                            
         memory_text = ""
         if self.context_memory["last_query_type"]:
             memory_text = f"\nContext Memory:\n- Last query type: {self.context_memory['last_query_type']}\n"
@@ -323,7 +312,6 @@ Response:"""
         return prompt
     
     def chat(self, user_message: str, context: Dict[str, Any] = None) -> str:
-        """Generate a conversational response using AIXPLAIN GPT with follow-up capabilities."""
         if not HAS_AIXPLAIN or not self.api_key or not self.model_id:
             return self._fallback_chat(user_message)
         
@@ -342,12 +330,12 @@ Response:"""
                     else:
                         response = str(result)
                     
-                    # Clean up the response
+                                           
                     response = response.strip()
                     if response.startswith("Response:"):
                         response = response[9:].strip()
                     
-                    # Add to conversation history
+                                                 
                     self.conversation_history.append({
                         "user": user_message,
                         "assistant": response,
@@ -363,20 +351,17 @@ Response:"""
             return self._fallback_chat(user_message)
     
     def update_context_memory(self, query_type: str, data: Any = None, analysis: str = None):
-        """Update context memory for follow-up conversations."""
         self.context_memory["last_query_type"] = query_type
         self.context_memory["last_data"] = data
         self.context_memory["last_analysis"] = analysis
     
     def get_context_memory(self) -> Dict[str, Any]:
-        """Get current context memory."""
         return self.context_memory.copy()
     
     def _fallback_chat(self, user_message: str) -> str:
-        """Fallback chat responses when AIXPLAIN is not available."""
         message_lower = user_message.lower()
         
-        # Greetings
+                   
         if any(word in message_lower for word in ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]):
             current_hour = datetime.now().hour
             if 5 <= current_hour < 12:
@@ -386,38 +371,35 @@ Response:"""
             else:
                 return "Good evening! I'm your AI assistant. How can I assist you?"
         
-        # Help
+              
         if any(word in message_lower for word in ["help", "what can you do", "capabilities", "features"]):
-            return """I'm your AI executive assistant! I can help you with:
-
-📧 **Emails**: Retrieve, analyze, and answer questions about your emails
-📅 **Meetings**: Check your calendar, analyze meeting patterns, get transcripts
-📁 **Files**: List, search, and analyze your OneDrive files
-🔍 **Analysis**: Get insights about your communication patterns and data
-
-Just ask me things like:
-- "Who sent the most emails last week?"
-- "What meetings do I have today?"
-- "Show me recent files"
-- "Analyze my email patterns"
-
-What would you like to explore?"""
+            return (
+                "I'm your AI executive assistant. I can help with:\n\n"
+                "Emails: Retrieve and analyze your emails\n"
+                "Meetings: Check calendar, analyze patterns, get transcripts\n"
+                "Files: List, search, and analyze your OneDrive files\n"
+                "Analysis: Insights about your communication patterns and data\n\n"
+                "Examples:\n"
+                "- Who sent the most emails last week?\n"
+                "- What meetings do I have today?\n"
+                "- Show me recent files\n"
+                "- Analyze my email patterns"
+            )
         
-        # Time/Date
+                   
         if any(word in message_lower for word in ["time", "date", "today", "current"]):
             context = RealTimeProcessor.get_context_info()
             return f"Today is {context['current_weekday']}, {context['current_month']} {context['current_date']}. The current time is {context['current_time']}."
         
-        # Weather (placeholder)
+                               
         if "weather" in message_lower:
             return "I don't have access to weather information, but I can help you with your emails, meetings, and files!"
         
-        # Default response
+                          
         return "I'm here to help with your emails, meetings, and files! You can ask me to retrieve data, analyze patterns, or just chat. What would you like to do?"
 
 
 class EnhancedSmartAgent:
-    """Enhanced smart agent with real-time awareness, chat capabilities, and name resolution."""
     
     def __init__(self):
         self.qa = QuestionAnswerer()
@@ -428,7 +410,6 @@ class EnhancedSmartAgent:
         self.name_resolver = NameResolver()
     
     def _run_aixplain_model(self, query: str) -> Optional[Dict[str, Any]]:
-        """Use AIXplain model to intelligently route the query."""
         if not HAS_AIXPLAIN:
             return None
         
@@ -437,7 +418,7 @@ class EnhancedSmartAgent:
             if not model_id:
                 return None
             
-            # Enhanced system prompt with real-time awareness
+                                                             
             context_info = self.real_time.get_context_info()
             
             system_prompt = f"""
@@ -532,30 +513,28 @@ Return only valid JSON, no additional text.
             return None
     
     def _parse_dates(self, query: str) -> List[str]:
-        """Extract dates in YYYY-MM-DD format from query."""
-        # First get explicit dates
+                                  
         explicit_dates = re.findall(r"\d{4}-\d{2}-\d{2}", query)
         
-        # Then get relative dates
+                                 
         relative_dates = self.real_time.parse_relative_dates(query)
         
-        # Combine and return unique dates
+                                         
         all_dates = explicit_dates + relative_dates
-        return list(dict.fromkeys(all_dates))  # Remove duplicates while preserving order
+        return list(dict.fromkeys(all_dates))                                            
     
     def _decide_with_rules(self, query: str) -> Dict[str, Any]:
-        """Enhanced rule-based decision logic with real-time awareness, name resolution, and follow-up detection."""
         q = query.lower()
         emails = re.findall(r"[\w\.-]+@[\w\.-]+", query)
         dates = self._parse_dates(query)
         ids = re.findall(r"[A-Za-z0-9-]{10,}", query)
         quoted = re.findall(r"['\"]([^'\"]+)['\"]", query)
         
-        # Check for follow-up queries
+                                     
         follow_up_keywords = ["what about", "and", "also", "too", "as well", "in addition", "furthermore", "moreover", "besides", "additionally"]
         is_follow_up = any(keyword in q for keyword in follow_up_keywords)
         
-        # Check if this is a chat query (but not a follow-up)
+                                                             
         chat_keywords = ["hello", "hi", "hey", "how are you", "good morning", "good afternoon", "good evening", "thanks", "thank you", "bye", "goodbye"]
         is_chat = any(keyword in q for keyword in chat_keywords) and not is_follow_up
         
@@ -567,11 +546,11 @@ Return only valid JSON, no additional text.
                 "is_follow_up": is_follow_up
             }
         
-        # Check if this is an analysis question
+                                               
         analysis_keywords = ["how many", "who sent", "urgent", "follow up", "most", "least", "average", "summary", "analyze", "what are"]
         is_analysis = any(keyword in q for keyword in analysis_keywords)
         
-        # Determine question type
+                                 
         if is_analysis and dates:
             question_type = "combined"
         elif is_analysis:
@@ -579,16 +558,16 @@ Return only valid JSON, no additional text.
         else:
             question_type = "retrieval"
         
-        # Extract analysis question
+                                   
         analysis_question = None
         if is_analysis:
             analysis_question = query
         
-        # Handle name-based queries
+                                   
         names = self.name_resolver.extract_names_from_query(query)
         resolved_names = self.name_resolver.smart_name_extraction(query)
         
-        # Email operations
+                          
         if "email" in q or "emails" in q or "inbox" in q or (is_follow_up and names):
             
             if "id" in q and ids:
@@ -600,14 +579,14 @@ Return only valid JSON, no additional text.
                     "is_follow_up": is_follow_up
                 }
             
-            # Handle "from [name]" queries or follow-up name queries
+                                                                    
             if ("from" in q and (emails or names)) or (is_follow_up and names):
                 sender = None
                 resolved_name = None
                 if emails:
                     sender = emails[1] if len(emails) > 1 else emails[0]
                 elif names and resolved_names:
-                    # Use the first resolved name
+                                                 
                     first_name = list(resolved_names.keys())[0]
                     sender = resolved_names[first_name]
                     resolved_name = first_name
@@ -623,7 +602,7 @@ Return only valid JSON, no additional text.
                         "resolved_name": resolved_name
                     }
                 elif sender:
-                    # If no specific date, use recent data
+                                                          
                     end_date = datetime.now()
                     start_date = end_date - timedelta(days=7)
                     return {
@@ -637,7 +616,7 @@ Return only valid JSON, no additional text.
                         "resolved_name": resolved_name
                     }
             
-            # Handle date range queries
+                                       
             if len(dates) >= 2:
                 return {
                     "tool": "email_by_date_range",
@@ -648,7 +627,7 @@ Return only valid JSON, no additional text.
                     "is_follow_up": is_follow_up
                 }
             
-            # Handle single date queries
+                                        
             if dates:
                 return {
                     "tool": "email_by_date_range",
@@ -659,7 +638,7 @@ Return only valid JSON, no additional text.
                     "is_follow_up": is_follow_up
                 }
             
-            # For analysis without dates, use recent data
+                                                         
             if is_analysis:
                 end_date = datetime.now()
                 start_date = end_date - timedelta(days=7)
@@ -672,7 +651,7 @@ Return only valid JSON, no additional text.
                     "is_follow_up": is_follow_up
                 }
         
-        # Meeting operations
+                            
         if "meeting" in q or "calendar" in q:
             if "transcript" in q:
                 return {
@@ -703,7 +682,7 @@ Return only valid JSON, no additional text.
                     "analysis_question": analysis_question,
                     "date": dates[0]
                 }
-            # For analysis without dates, use recent data
+                                                         
             if is_analysis:
                 end_date = datetime.now()
                 start_date = end_date - timedelta(days=30)
@@ -715,7 +694,7 @@ Return only valid JSON, no additional text.
                     "end_date": end_date.strftime("%Y-%m-%d")
                 }
         
-        # File operations
+                         
         if "file" in q or "onedrive" in q:
             if is_analysis:
                 return {
@@ -734,7 +713,7 @@ Return only valid JSON, no additional text.
                     "top": 50
                 }
         
-        # Default to chat if no specific tool identified
+                                                        
         return {
             "tool": "chat",
             "question_type": "chat",
@@ -742,30 +721,29 @@ Return only valid JSON, no additional text.
         }
     
     def handle_query(self, query: str, default_user_id: Optional[str] = None) -> Dict[str, Any]:
-        """Enhanced query handler with real-time awareness, chat capabilities, and follow-up support."""
         print(f"[EnhancedSmartAgent] Processing query: {query}")
         
-        # Check if this is a follow-up query first
+                                                  
         follow_up_keywords = ["what about", "and", "also", "too", "as well", "in addition", "furthermore", "moreover", "besides", "additionally"]
         is_follow_up_query = any(keyword in query.lower() for keyword in follow_up_keywords)
         
-        # Check if this is a name-based query that needs special handling
+                                                                         
         names = self.name_resolver.extract_names_from_query(query)
         resolved_names = self.name_resolver.smart_name_extraction(query)
         
-        # If it's a follow-up query, use rule-based logic to ensure proper handling
+                                                                                   
         if is_follow_up_query:
             print("[EnhancedSmartAgent] Follow-up query detected, using rule-based logic")
             decision = self._decide_with_rules(query)
-        # If names are detected, use rule-based logic to ensure proper name resolution
+                                                                                      
         elif names and resolved_names:
             print("[EnhancedSmartAgent] Name-based query detected, using rule-based logic")
             decision = self._decide_with_rules(query)
         else:
-            # Try AIXplain model first for other queries
+                                                        
             decision = self._run_aixplain_model(query)
             
-            # Fall back to rule-based logic if AIXplain fails
+                                                             
             if not decision:
                 print("[EnhancedSmartAgent] Using fallback rule-based logic")
                 decision = self._decide_with_rules(query)
@@ -784,7 +762,7 @@ Return only valid JSON, no additional text.
         if resolved_name:
             print(f"[EnhancedSmartAgent] Resolved name: {resolved_name}")
         
-        # Handle chat queries
+                             
         if tool == "chat":
             chat_response = self.chatbot.chat(query)
             return {
@@ -795,12 +773,12 @@ Return only valid JSON, no additional text.
                 "is_follow_up": is_follow_up
             }
         
-        # Handle error cases
+                            
         if tool == "error":
             error_message = decision.get("message", "An error occurred")
             return {"tool": tool, "error": error_message, "answer": error_message}
         
-        # Get access token for email operations
+                                               
         headers = None
         if tool and tool.startswith("email_"):
             token = get_access_token()
@@ -812,15 +790,15 @@ Return only valid JSON, no additional text.
             }
             fetch_last_email_ids(headers, limit=100, user_id=user_id)
         
-        # Execute the tool and get data
+                                       
         data = None
         
-        # Handle invalid tool names from AIXPLAIN
+                                                 
         if tool == "email_by_sender_date_range":
-            # This tool doesn't exist, fall back to email_by_date_range
+                                                                       
             print("[EnhancedSmartAgent] Invalid tool 'email_by_sender_date_range' detected, using fallback")
             tool = "email_by_date_range"
-            # Use recent date range for name-based queries
+                                                          
             end_date = datetime.now()
             start_date = end_date - timedelta(days=7)
             decision["start_date"] = start_date.strftime("%Y-%m-%d")
@@ -834,7 +812,7 @@ Return only valid JSON, no additional text.
             date = decision.get("date")
             data = retrieve_emails_by_sender_date(sender, date, headers, user_id)
             
-            # Update context memory for follow-up conversations
+                                                               
             if data and resolved_name:
                 sender_name = self.name_resolver.resolve_email_to_name(sender)
                 self.chatbot.update_context_memory(
@@ -845,16 +823,16 @@ Return only valid JSON, no additional text.
         elif tool == "email_by_date_range":
             start_date = decision.get("start_date")
             end_date = decision.get("end_date")
-            sender = decision.get("sender")  # For name-based queries
+            sender = decision.get("sender")                          
             
             if sender:
-                # Filter by sender if specified
+                                               
                 all_data = retrieve_emails_by_date_range(start_date, end_date, headers, get_cached_email_ids(limit=100), user_id)
                 data = [email for email in all_data if email.get("from") == sender]
             else:
                 data = retrieve_emails_by_date_range(start_date, end_date, headers, get_cached_email_ids(limit=100), user_id)
             
-            # Update context memory for follow-up conversations
+                                                               
             if data:
                 date_range = f"{start_date} to {end_date}"
                 if resolved_name:
@@ -906,7 +884,7 @@ Return only valid JSON, no additional text.
             item = upload_onedrive_file(file_path=local_path, destination_path=destination_path, user_id=user_id)
             data = {"name": item.get("name"), "size": item.get("size")}
         
-        # Generate response
+                           
         data_count = len(data) if isinstance(data, list) else 1 if data else 0
         
         response = {
@@ -914,11 +892,10 @@ Return only valid JSON, no additional text.
             "question_type": question_type,
             "data_count": data_count,
             "timestamp": datetime.now().isoformat(),
-            "context": self.real_time.get_context_info(),
             "is_follow_up": is_follow_up
         }
         
-        # Add helpful message when no data is found
+                                                   
         if data_count == 0 and tool != "chat":
             if resolved_name:
                 response["message"] = f"No emails found from {resolved_name} in the specified date range."
@@ -929,12 +906,12 @@ Return only valid JSON, no additional text.
             elif tool.startswith("onedrive_"):
                 response["message"] = "No files found matching your criteria."
         
-        # Add resolved name information
+                                       
         if resolved_name:
             response["resolved_name"] = resolved_name
             response["sender_email"] = decision.get("sender")
         
-        # Add conversation context for follow-ups
+                                                 
         if is_follow_up:
             context_memory = self.chatbot.get_context_memory()
             response["conversation_context"] = {
@@ -942,16 +919,16 @@ Return only valid JSON, no additional text.
                 "last_analysis": context_memory.get("last_analysis")
             }
         
-        # Answer analysis questions if applicable
+                                                 
         if question_type in ["analysis", "combined"] and analysis_question and data:
             if tool.startswith("email_"):
                 answer = self.qa.answer_email_questions(data, analysis_question)
-                # Add advanced analysis
+                                       
                 advanced_analysis = self.advanced_analyzer.analyze_email_content(data)
                 if "natural_summary" in advanced_analysis:
                     response["advanced_insights"] = advanced_analysis["natural_summary"]
                 
-                # Update context memory for follow-up conversations
+                                                                   
                 self.chatbot.update_context_memory(
                     "email_analysis",
                     data,
@@ -959,12 +936,12 @@ Return only valid JSON, no additional text.
                 )
             elif tool.startswith("calendar_") or tool.startswith("meeting_"):
                 answer = self.qa.answer_meeting_questions(data, analysis_question)
-                # Add advanced analysis
+                                       
                 advanced_analysis = self.advanced_analyzer.analyze_meeting_patterns(data)
                 if "natural_summary" in advanced_analysis:
                     response["advanced_insights"] = advanced_analysis["natural_summary"]
                 
-                # Update context memory for follow-up conversations
+                                                                   
                 self.chatbot.update_context_memory(
                     "meeting_analysis",
                     data,
@@ -972,12 +949,12 @@ Return only valid JSON, no additional text.
                 )
             elif tool.startswith("onedrive_"):
                 answer = self.qa.answer_file_questions(data, analysis_question)
-                # Add advanced analysis
+                                       
                 advanced_analysis = self.advanced_analyzer.analyze_file_usage(data)
                 if "natural_summary" in advanced_analysis:
                     response["advanced_insights"] = advanced_analysis["natural_summary"]
                 
-                # Update context memory for follow-up conversations
+                                                                   
                 self.chatbot.update_context_memory(
                     "file_analysis",
                     data,
@@ -989,29 +966,52 @@ Return only valid JSON, no additional text.
             response["answer"] = answer
             response["analysis_question"] = analysis_question
         
-        # Generate natural language response for retrieval queries
+                                                                                           
         if question_type == "retrieval" and data:
-            if tool.startswith("email_"):
-                response["summary"] = f"Retrieved {len(data) if isinstance(data, list) else 1} email(s)"
-                response["natural_response"] = self._generate_email_summary(data, query)
-            elif tool.startswith("calendar_") or tool.startswith("meeting_"):
-                response["summary"] = f"Retrieved {len(data) if isinstance(data, list) else 1} meeting(s)"
-                response["natural_response"] = self._generate_meeting_summary(data, query)
-            elif tool.startswith("onedrive_"):
-                response["summary"] = f"Retrieved {len(data) if isinstance(data, list) else 1} file(s)"
-                response["natural_response"] = self._generate_file_summary(data, query)
+                                                      
+            max_items = 10
+            items = []
+            if tool.startswith("email_") and isinstance(data, list):
+                for e in data[:max_items]:
+                    items.append({
+                        "from": e.get("from", "Unknown"),
+                        "subject": e.get("subject", "No Subject"),
+                        "receivedDateTime": e.get("receivedDateTime", "Unknown"),
+                        "hasAttachments": e.get("hasAttachments", False)
+                    })
+                response["natural_response"] = self._generate_fallback_email_summary(data, query)
+            elif (tool.startswith("calendar_") or tool.startswith("meeting_")) and isinstance(data, list):
+                for m in data[:max_items]:
+                    items.append({
+                        "subject": m.get("subject", "No Subject"),
+                        "organizer": m.get("organizer", {}).get("emailAddress", {}).get("address", "Unknown"),
+                        "start": m.get("start", {}).get("dateTime", "Unknown"),
+                        "end": m.get("end", {}).get("dateTime", "Unknown"),
+                        "attendees": len(m.get("attendees", []))
+                    })
+                response["natural_response"] = self._generate_fallback_meeting_summary(data, query)
+            elif tool.startswith("onedrive_") and isinstance(data, list):
+                for f in data[:max_items]:
+                    items.append({
+                        "name": f.get("name", "Unknown"),
+                        "size": f.get("size", 0),
+                        "lastModifiedDateTime": f.get("lastModifiedDateTime", "Unknown"),
+                        "type": "Folder" if f.get("isFolder", False) else "File"
+                    })
+                response["natural_response"] = self._generate_fallback_file_summary(data, query)
+            if items:
+                response["items"] = items
         
         return response
     
     def _generate_email_summary(self, emails: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate natural language summary of emails using AIXPLAIN."""
         if not emails:
             return "No emails found for the specified criteria."
         
         try:
-            # Prepare email data for summary
+                                            
             email_summaries = []
-            for i, email in enumerate(emails[:10], 1):  # Limit to first 10 emails
+            for i, email in enumerate(emails[:10], 1):                            
                 sender = email.get("from", "Unknown")
                 subject = email.get("subject", "No Subject")
                 date = email.get("receivedDateTime", "Unknown")
@@ -1020,7 +1020,7 @@ Return only valid JSON, no additional text.
                 
                 email_summaries.append(f"{i}. From: {sender}\n   Subject: {subject}\n   Date: {date}\n   Attachments: {'Yes' if has_attachments else 'No'}\n   Preview: {preview}")
             
-            # Create prompt for AIXPLAIN
+                                        
             prompt = f"""You are an intelligent executive assistant. The user asked: "{original_query}"
 
 Here are the emails that were found:
@@ -1039,7 +1039,7 @@ Make it conversational and natural, as if you're speaking to the user directly. 
 
 Response:"""
             
-            # Use AIXPLAIN to generate summary
+                                              
             if HAS_AIXPLAIN and self.chatbot.api_key and self.chatbot.model_id:
                 client = ax.Aixplain(api_key=self.chatbot.api_key)
                 if hasattr(client, 'Model'):
@@ -1053,14 +1053,14 @@ Response:"""
                         else:
                             summary = str(result)
                         
-                        # Clean up the response
+                                               
                         summary = summary.strip()
                         if summary.startswith("Response:"):
                             summary = summary[9:].strip()
                         
                         return summary
             
-            # Fallback to rule-based summary
+                                            
             return self._generate_fallback_email_summary(emails, original_query)
             
         except Exception as e:
@@ -1068,7 +1068,6 @@ Response:"""
             return self._generate_fallback_email_summary(emails, original_query)
     
     def _generate_fallback_email_summary(self, emails: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate a fallback summary when AIXPLAIN is not available."""
         if not emails:
             return "No emails found for the specified criteria."
         
@@ -1112,14 +1111,13 @@ Response:"""
         return summary
     
     def _generate_meeting_summary(self, meetings: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate natural language summary of meetings using AIXPLAIN."""
         if not meetings:
             return "No meetings found for the specified criteria."
         
         try:
-            # Prepare meeting data for summary
+                                              
             meeting_summaries = []
-            for i, meeting in enumerate(meetings[:10], 1):  # Limit to first 10 meetings
+            for i, meeting in enumerate(meetings[:10], 1):                              
                 subject = meeting.get("subject", "No Subject")
                 organizer = meeting.get("organizer", {}).get("emailAddress", {}).get("address", "Unknown")
                 start = meeting.get("start", {}).get("dateTime", "Unknown")
@@ -1128,7 +1126,7 @@ Response:"""
                 
                 meeting_summaries.append(f"{i}. Subject: {subject}\n   Organizer: {organizer}\n   Start: {start}\n   End: {end}\n   Attendees: {attendees_count}")
             
-            # Create prompt for AIXPLAIN
+                                        
             prompt = f"""You are an intelligent executive assistant. The user asked: "{original_query}"
 
 Here are the meetings that were found:
@@ -1147,7 +1145,7 @@ Make it conversational and natural, as if you're speaking to the user directly. 
 
 Response:"""
             
-            # Use AIXPLAIN to generate summary
+                                              
             if HAS_AIXPLAIN and self.chatbot.api_key and self.chatbot.model_id:
                 client = ax.Aixplain(api_key=self.chatbot.api_key)
                 if hasattr(client, 'Model'):
@@ -1161,14 +1159,14 @@ Response:"""
                         else:
                             summary = str(result)
                         
-                        # Clean up the response
+                                               
                         summary = summary.strip()
                         if summary.startswith("Response:"):
                             summary = summary[9:].strip()
                         
                         return summary
             
-            # Fallback to rule-based summary
+                                            
             return self._generate_fallback_meeting_summary(meetings, original_query)
             
         except Exception as e:
@@ -1176,7 +1174,6 @@ Response:"""
             return self._generate_fallback_meeting_summary(meetings, original_query)
     
     def _generate_fallback_meeting_summary(self, meetings: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate a fallback summary when AIXPLAIN is not available."""
         if not meetings:
             return "No meetings found for the specified criteria."
         
@@ -1204,14 +1201,13 @@ Response:"""
         return summary
     
     def _generate_file_summary(self, files: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate natural language summary of files using AIXPLAIN."""
         if not files:
             return "No files found for the specified criteria."
         
         try:
-            # Prepare file data for summary
+                                           
             file_summaries = []
-            for i, file in enumerate(files[:10], 1):  # Limit to first 10 files
+            for i, file in enumerate(files[:10], 1):                           
                 name = file.get("name", "Unknown")
                 size = file.get("size", 0)
                 size_mb = size / (1024 * 1024) if size > 0 else 0
@@ -1220,7 +1216,7 @@ Response:"""
                 
                 file_summaries.append(f"{i}. Name: {name}\n   Size: {size_mb:.2f} MB\n   Modified: {modified}\n   Type: {'Folder' if is_folder else 'File'}")
             
-            # Create prompt for AIXPLAIN
+                                        
             prompt = f"""You are an intelligent executive assistant. The user asked: "{original_query}"
 
 Here are the files that were found:
@@ -1239,7 +1235,7 @@ Make it conversational and natural, as if you're speaking to the user directly. 
 
 Response:"""
             
-            # Use AIXPLAIN to generate summary
+                                              
             if HAS_AIXPLAIN and self.chatbot.api_key and self.chatbot.model_id:
                 client = ax.Aixplain(api_key=self.chatbot.api_key)
                 if hasattr(client, 'Model'):
@@ -1253,14 +1249,14 @@ Response:"""
                         else:
                             summary = str(result)
                         
-                        # Clean up the response
+                                               
                         summary = summary.strip()
                         if summary.startswith("Response:"):
                             summary = summary[9:].strip()
                         
                         return summary
             
-            # Fallback to rule-based summary
+                                            
             return self._generate_fallback_file_summary(files, original_query)
             
         except Exception as e:
@@ -1268,7 +1264,6 @@ Response:"""
             return self._generate_fallback_file_summary(files, original_query)
     
     def _generate_fallback_file_summary(self, files: List[Dict[str, Any]], original_query: str) -> str:
-        """Generate a fallback summary when AIXPLAIN is not available."""
         if not files:
             return "No files found for the specified criteria."
         
@@ -1295,13 +1290,11 @@ Response:"""
         return summary
 
 
-# DataAnalyzer and QuestionAnswerer classes (moved from smart_agent.py)
+                                                                       
 class DataAnalyzer:
-    """Analyzes retrieved data for basic insights."""
     
     @staticmethod
     def analyze_emails(emails: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze email data for basic insights."""
         if not emails:
             return {"count": 0, "senders": {}, "subjects": [], "dates": [], "attachments": 0}
         
@@ -1311,20 +1304,20 @@ class DataAnalyzer:
         attachments = 0
         
         for email in emails:
-            # Count senders
+                           
             sender = email.get("from", "Unknown")
             senders[sender] = senders.get(sender, 0) + 1
             
-            # Collect subjects
+                              
             subject = email.get("subject", "No Subject")
             if subject not in subjects:
                 subjects.append(subject)
             
-            # Collect dates
+                           
             date = email.get("receivedDateTime", "Unknown")
             dates.append(date)
             
-            # Count attachments
+                               
             if email.get("hasAttachments", False):
                 attachments += 1
         
@@ -1339,7 +1332,6 @@ class DataAnalyzer:
     
     @staticmethod
     def analyze_meetings(meetings: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze meeting data for basic insights."""
         if not meetings:
             return {"count": 0, "organizers": {}, "attendees": [], "subjects": []}
         
@@ -1348,16 +1340,16 @@ class DataAnalyzer:
         subjects = []
         
         for meeting in meetings:
-            # Count organizers
+                              
             organizer = meeting.get("organizer", {}).get("emailAddress", {}).get("address", "Unknown")
             organizers[organizer] = organizers.get(organizer, 0) + 1
             
-            # Collect subjects
+                              
             subject = meeting.get("subject", "No Subject")
             if subject not in subjects:
                 subjects.append(subject)
             
-            # Collect attendees
+                               
             meeting_attendees = meeting.get("attendees", [])
             for attendee in meeting_attendees:
                 attendee_email = attendee.get("emailAddress", {}).get("address", "Unknown")
@@ -1374,7 +1366,6 @@ class DataAnalyzer:
     
     @staticmethod
     def analyze_files(files: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze file data for basic insights."""
         if not files:
             return {"count": 0, "types": {}, "sizes": [], "total_size": 0}
         
@@ -1383,11 +1374,11 @@ class DataAnalyzer:
         total_size = 0
         
         for file in files:
-            # Count file types
+                              
             file_type = file.get("name", "").split(".")[-1] if "." in file.get("name", "") else "unknown"
             types[file_type] = types.get(file_type, 0) + 1
             
-            # Collect sizes
+                           
             size = file.get("size", 0)
             sizes.append(size)
             total_size += size
@@ -1403,11 +1394,9 @@ class DataAnalyzer:
 
 
 class QuestionAnswerer:
-    """Answers specific questions about analyzed data."""
     
     @staticmethod
     def answer_email_questions(emails: List[Dict[str, Any]], question: str) -> str:
-        """Answer questions about email data."""
         analysis = DataAnalyzer.analyze_emails(emails)
         q = question.lower()
         
@@ -1424,7 +1413,7 @@ class QuestionAnswerer:
             return f"There are {analysis['attachments']} emails with attachments."
         
         if "urgent" in q or "important" in q:
-            # Simple urgency detection based on subject keywords
+                                                                
             urgent_keywords = ["urgent", "important", "asap", "critical", "emergency", "deadline"]
             urgent_count = 0
             for email in emails:
@@ -1437,7 +1426,6 @@ class QuestionAnswerer:
     
     @staticmethod
     def answer_meeting_questions(meetings: List[Dict[str, Any]], question: str) -> str:
-        """Answer questions about meeting data."""
         analysis = DataAnalyzer.analyze_meetings(meetings)
         q = question.lower()
         
@@ -1457,7 +1445,6 @@ class QuestionAnswerer:
     
     @staticmethod
     def answer_file_questions(files: List[Dict[str, Any]], question: str) -> str:
-        """Answer questions about file data."""
         analysis = DataAnalyzer.analyze_files(files)
         q = question.lower()
         
@@ -1479,10 +1466,9 @@ class QuestionAnswerer:
 
 
 def test_enhanced_agent():
-    """Test the enhanced smart agent with various queries including follow-up conversations."""
     agent = EnhancedSmartAgent()
     
-    # Test basic queries
+                        
     test_queries = [
         "hello",
         "what time is it?",
@@ -1496,7 +1482,7 @@ def test_enhanced_agent():
         "meetings next week"
     ]
     
-    # Test name-based queries
+                             
     name_queries = [
         "emails from John",
         "emails from Sarah today",
@@ -1504,7 +1490,7 @@ def test_enhanced_agent():
         "who sent the most emails from Jane last week"
     ]
     
-    # Test follow-up conversations
+                                  
     follow_up_queries = [
         "emails from John",
         "what about Sarah?",
@@ -1512,7 +1498,7 @@ def test_enhanced_agent():
         "also show me recent files"
     ]
     
-    # Test last email queries
+                             
     last_email_queries = [
         "last email",
         "last emails from John",
@@ -1531,7 +1517,7 @@ def test_enhanced_agent():
         try:
             result = agent.handle_query(query, "executive.assistant@menadevs.io")
             
-            # Display key information
+                                     
             print(f"Tool: {result.get('tool', 'Unknown')}")
             print(f"Question Type: {result.get('question_type', 'Unknown')}")
             print(f"Data Count: {result.get('data_count', 0)}")

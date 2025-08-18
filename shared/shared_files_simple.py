@@ -31,16 +31,15 @@ def is_text_file(filename):
     return file_ext in text_extensions
 
 def get_conversation_messages(conversation_id, headers, user_id=None):
-    """Get all messages in a conversation thread"""
     base_url = "https://graph.microsoft.com/v1.0"
     
-    # For application permissions, we need to specify a user ID
+                                                               
     if user_id:
         user_prefix = f"users/{user_id}"
     else:
         user_prefix = "me"
     
-    # 1. Try $search (if enabled)
+                                 
     search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
@@ -57,7 +56,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
     
-    # 2. Try msgfolderroot (AllItems) with smaller limit
+                                                        
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
@@ -77,7 +76,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     
-    # 3. Try inbox with smaller limit
+                                     
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
@@ -97,12 +96,12 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     
-    # 4. Limited fallback: Fetch recent messages only (max 1000)
+                                                                
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
     next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 1000  # Limit to prevent excessive API calls
+    max_messages = 1000                                        
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -116,7 +115,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                 message_count += len(batch)
                 next_url = data.get("@odata.nextLink")
                 if next_url:
-                    time.sleep(0.1)  # Reduced delay
+                    time.sleep(0.1)                 
             else:
                 print(f"[DEBUG] Status {response.status_code}: {response.text}")
                 break
@@ -242,7 +241,6 @@ def extract_pptx_text_from_bytes(content_bytes):
         return None
 
 def get_access_token():
-    """Get access token using application permissions (client credentials flow)"""
     from .auth import get_access_token as get_app_token
     return get_app_token()
 
@@ -380,12 +378,11 @@ def print_file_content_from_bytes(attachment):
         print("="*60)
 
 def get_all_attachments_from_conversation(email_id, headers):
-    """Get all attachments from the original email and all replies in the conversation"""
     print("============================================================")
     print("Email Attachment Viewer (with Conversation Thread)")
     print("============================================================")
     
-    # Get the original email
+                            
     email_data = get_email_by_id(email_id, headers)
     if not email_data:
         print("Email not found!")
@@ -396,13 +393,13 @@ def get_all_attachments_from_conversation(email_id, headers):
     print(f"From: {email_data.get('from', {}).get('emailAddress', {}).get('address', 'Unknown')}")
     print(f"Date: {email_data.get('receivedDateTime', 'Unknown')}")
     
-    # Get conversation ID
+                         
     conversation_id = email_data.get("conversationId")
     if not conversation_id:
         print("No conversation ID found for this email.")
         return []
     
-    # Get all messages in the conversation
+                                          
     print(f"\nRetrieving conversation thread...")
     conversation_messages = get_conversation_messages(conversation_id, headers)
     
@@ -410,22 +407,22 @@ def get_all_attachments_from_conversation(email_id, headers):
         print("No conversation messages found.")
         return []
     
-    # Combine original email and conversation messages, remove duplicates
+                                                                         
     orig_id = str(email_data.get("id")).lower()
-    all_messages = [email_data]  # Start with original email
+    all_messages = [email_data]                             
     
     for msg in conversation_messages:
         if str(msg.get("id")).lower() != orig_id:
             all_messages.append(msg)
     
-    # Sort by received date
+                           
     all_messages.sort(key=lambda m: m.get("receivedDateTime", ""))
     
     print(f"\nFound {len(all_messages)} messages in conversation thread")
     
-    # Collect all attachments from all messages
+                                               
     all_attachments = []
-    attachment_sources = []  # Track which email each attachment comes from
+    attachment_sources = []                                                
     
     for i, message in enumerate(all_messages, 1):
         message_id = message.get("id")
@@ -495,7 +492,7 @@ def main():
     
     print(f"\nFetching email with ID: {email_id}")
     
-    # Get all attachments from conversation thread
+                                                  
     all_attachments, attachment_sources = get_all_attachments_from_conversation(email_id, headers)
     
     if not all_attachments:
@@ -506,7 +503,7 @@ def main():
     print("Note: The script will extract text directly from attachments without saving files.")
     print("Required libraries will be installed automatically if needed.")
     
-    # Display all attachments with their source information
+                                                           
     print(f"\nAll attachments in conversation:")
     print("="*80)
     for i, (attachment, source) in enumerate(zip(all_attachments, attachment_sources), 1):

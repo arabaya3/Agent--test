@@ -15,7 +15,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     import time
     base_url = "https://graph.microsoft.com/v1.0"
     
-    # For application permissions, we need to specify a user ID
+                                                               
     if user_id:
         user_prefix = f"users/{user_id}"
     else:
@@ -57,7 +57,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     
-    # 3. Try inbox with smaller limit
+                                     
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
@@ -77,12 +77,12 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     
-    # 4. Limited fallback: Fetch recent messages only (max 1000)
+                                                                
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
     next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 100  # Limit to 100 messages only
+    max_messages = 100                              
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -96,7 +96,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                 message_count += len(batch)
                 next_url = data.get("@odata.nextLink")
                 if next_url:
-                    time.sleep(0.1)  # Reduced delay
+                    time.sleep(0.1)                 
             else:
                 print(f"[DEBUG] Status {response.status_code}: {response.text}")
                 break
@@ -123,7 +123,7 @@ def search_emails_by_date_range(start_date, end_date, headers, email_ids, user_i
         print("Error: Dates must be in YYYY-MM-DD format")
         return []
     
-    # Fetch only the emails with the given IDs
+                                              
     filtered_emails = []
     for eid in email_ids:
         if user_id:
@@ -161,10 +161,10 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
     print(f"\nFound {len(emails)} emails in date range {start_date} to {end_date}")
     print("============================================================")
     
-    # Always include main email and all replies (no user prompt needed)
+                                                                       
     all_conversation_emails = []
-    processed_conversation_ids = set()  # Track processed conversations to avoid duplicates
-    unique_conversations_processed = 0  # Count unique conversations actually processed
+    processed_conversation_ids = set()                                                     
+    unique_conversations_processed = 0                                                 
     
     for i, email in enumerate(emails, 1):
         print(f"\nProcessing email {i}/{len(emails)}: {email.get('subject', 'No Subject')}")
@@ -173,7 +173,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
             print(f"✗ No conversationId found for email")
             continue
             
-        # Skip if we've already processed this conversation
+                                                           
         if conversation_id in processed_conversation_ids:
             print(f"✗ Conversation already processed, skipping")
             continue
@@ -185,10 +185,10 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
             
-        # Build a dict to deduplicate by ID (include original email and all conversation messages)
+                                                                                                  
         msg_dict = {}
         
-        # Add the original email first
+                                      
         orig_id = str(email.get("id")).lower()
         msg_dict[orig_id] = {
             "id": email.get("id"),
@@ -200,7 +200,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
             "conversationId": email.get("conversationId")
         }
         
-        # Add all conversation messages (this will overwrite the original if it's duplicated)
+                                                                                             
         for msg in conversation_messages:
             msg_id = str(msg.get("id")).lower()
             msg_dict[msg_id] = {
@@ -213,7 +213,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
                 "conversationId": msg.get("conversationId")
             }
         
-        # Sort all messages by receivedDateTime
+                                               
         output_msgs = sorted(msg_dict.values(), key=lambda m: m.get("receivedDateTime", ""))
         all_conversation_emails.extend(output_msgs)
         print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation (including main email and all replies).")
@@ -245,7 +245,7 @@ def main():
     print("Email Date Range Retriever")
     print("============================================================")
     
-    # First, get access token
+                             
     access_token = get_access_token()
     if not access_token:
         return
@@ -255,13 +255,13 @@ def main():
         "Content-Type": "application/json"
     }
     
-    # Ask user for how many recent emails to fetch
+                                                  
     try:
         limit = int(input("How many recent emails do you want to fetch? (1-100, default 100): ").strip() or 100)
     except ValueError:
         limit = 100
     limit = min(max(1, limit), 100)
-    # Fetch and cache the last N email IDs
+                                          
     fetch_last_email_ids(headers, limit=limit)
     email_ids = get_cached_email_ids(limit=limit)
     

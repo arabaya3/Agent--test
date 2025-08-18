@@ -21,12 +21,12 @@ def _build_headers() -> Dict[str, str]:
 
 
 def _normalize_path(path_value: str) -> str:
-    # Graph paths use forward slashes
+                                     
     return (path_value or "").replace("\\", "/").lstrip("/")
 
 
 def _resolve_download_url(user_id: Optional[str], drive_id: Optional[str], item_path: str) -> str:
-    # Graph expects path segment without leading '/'
+                                                    
     normalized_path = _normalize_path(item_path)
 
     if user_id:
@@ -44,21 +44,6 @@ def retrieve_onedrive_file(
     download_to: Optional[str] = None,
     timeout_seconds: int = 60,
 ) -> Tuple[bytes, Dict[str, Any]]:
-    """
-    Download a file from OneDrive using Microsoft Graph with application permissions.
-
-    One of user_id or drive_id must be provided.
-
-    Args:
-        item_path: The OneDrive path to the file (e.g., "Documents/report.pdf").
-        user_id: Azure AD object id or UPN of the target user who owns the OneDrive.
-        drive_id: Drive ID if targeting a specific drive instead of user.
-        download_to: Optional local filesystem path to save the file. If provided, file is written and bytes still returned.
-        timeout_seconds: Request timeout.
-
-    Returns:
-        A tuple of (file_bytes, response_headers_metadata).
-    """
     if not item_path:
         raise ValueError("item_path is required")
 
@@ -83,7 +68,7 @@ def retrieve_onedrive_file(
         with open(download_to, "wb") as fp:
             fp.write(content)
 
-    # Include selected headers as metadata
+                                          
     metadata = {
         "content_type": response.headers.get("Content-Type"),
         "content_length": response.headers.get("Content-Length"),
@@ -117,7 +102,7 @@ if __name__ == "__main__":
         print("Download succeeded:")
         print(json.dumps(meta, indent=2))
         if not args.out:
-            # If no output path is provided, indicate size only
+                                                               
             print(f"Downloaded bytes: {len(data)}")
     except Exception as exc:
         print(f"ERROR: {exc}")

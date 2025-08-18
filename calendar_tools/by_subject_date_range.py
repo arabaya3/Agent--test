@@ -33,7 +33,7 @@ def search_meetings_by_subject_date_range(subject, start_date, end_date, headers
             
             meetings = data.get("value", [])
             
-            # Filter meetings by subject
+                                        
             filtered_meetings = []
             for meeting in meetings:
                 meeting_subject = meeting.get("subject", "")

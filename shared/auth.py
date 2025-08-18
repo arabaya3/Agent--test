@@ -2,14 +2,12 @@ import os
 import requests
 from dotenv import load_dotenv
 import msal
+import json as _json
+import base64 as _base64
 
 load_dotenv()
 
 def get_access_token():
-    """
-    Get access token using application permissions (client credentials flow)
-    instead of delegated permissions (device flow)
-    """
     client_id = os.getenv('CLIENT_ID')
     tenant_id = os.getenv('TENANT_ID')
     client_secret = os.getenv('CLIENT_SECRET')
@@ -20,20 +18,37 @@ def get_access_token():
     
     authority = f"https://login.microsoftonline.com/{tenant_id}"
     
-    # Use ConfidentialClientApplication for application permissions
+                                                                   
     app = msal.ConfidentialClientApplication(
         client_id=client_id,
         client_credential=client_secret,
         authority=authority
     )
     
-    # Use client credentials flow for application permissions
+                                                             
     scopes = ["https://graph.microsoft.com/.default"]
     
     result = app.acquire_token_for_client(scopes=scopes)
     
     if "access_token" in result:
-        return result["access_token"]
+        token = result["access_token"]
+                                                                        
+        if os.getenv("DEBUG_AUTH", "0") == "1":
+            try:
+                                                                              
+                parts = token.split(".")
+                if len(parts) >= 2:
+                    padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+                    payload_bytes = _base64.urlsafe_b64decode(padded)
+                    claims = _json.loads(payload_bytes.decode("utf-8"))
+                    roles = claims.get("roles") or claims.get("scp")
+                    appid = claims.get("appid")
+                    tid = claims.get("tid")
+                    print("[AUTH DEBUG] appid:", appid, "tenant:", tid)
+                    print("[AUTH DEBUG] roles/scopes:", roles)
+            except Exception as _:
+                pass
+        return token
     else:
         print(f"Error: {result.get('error_description', 'Unknown error')}")
         print(f"Error code: {result.get('error', 'Unknown')}")

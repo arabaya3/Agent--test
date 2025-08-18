@@ -15,13 +15,13 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     import time
     base_url = "https://graph.microsoft.com/v1.0"
     
-    # For application permissions, we need to specify a user ID
+                                                               
     if user_id:
         user_prefix = f"users/{user_id}"
     else:
         user_prefix = "me"
     
-    # 1. Try $search (if enabled)
+                                 
     search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
@@ -38,7 +38,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
     
-    # 2. Try msgfolderroot (AllItems) with smaller limit
+                                                        
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
@@ -58,7 +58,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     
-    # 3. Try inbox with smaller limit
+                                     
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
         f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
@@ -78,12 +78,12 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     except requests.exceptions.RequestException as e:
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     
-    # 4. Limited fallback: Fetch recent messages only (max 1000)
+                                                                
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
     next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
-    max_messages = 100  # Limit to 100 messages only
+    max_messages = 100                              
     
     while next_url and message_count < max_messages:
         print(f"[DEBUG] Requesting (limited): {next_url}")
@@ -97,7 +97,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                 message_count += len(batch)
                 next_url = data.get("@odata.nextLink")
                 if next_url:
-                    time.sleep(0.1)  # Reduced delay
+                    time.sleep(0.1)                 
             else:
                 print(f"[DEBUG] Status {response.status_code}: {response.text}")
                 break
@@ -123,7 +123,7 @@ def search_emails_by_sender_date(sender, date, headers, user_id=None):
         print("Error: Date must be in YYYY-MM-DD format")
         return []
     
-    # Get email IDs from cache
+                              
     email_ids = get_cached_email_ids(limit=100)
     
     filtered_emails = []
@@ -195,10 +195,10 @@ def retrieve_emails_by_sender_date(sender, date, headers, user_id=None):
     print(f"\nFound {len(emails)} emails from {sender} on {date}")
     print("============================================================")
     
-    # Always include main email and all replies (no user prompt needed)
+                                                                       
     all_conversation_emails = []
-    processed_conversation_ids = set()  # Track processed conversations to avoid duplicates
-    unique_conversations_processed = 0  # Count unique conversations actually processed
+    processed_conversation_ids = set()                                                     
+    unique_conversations_processed = 0                                                 
     
     for i, email in enumerate(emails, 1):
         print(f"\nProcessing email {i}/{len(emails)}: {email.get('subject', 'No Subject')}")
@@ -207,7 +207,7 @@ def retrieve_emails_by_sender_date(sender, date, headers, user_id=None):
             print(f"✗ No conversationId found for email")
             continue
             
-        # Skip if we've already processed this conversation
+                                                           
         if conversation_id in processed_conversation_ids:
             print(f"✗ Conversation already processed, skipping")
             continue
@@ -219,10 +219,10 @@ def retrieve_emails_by_sender_date(sender, date, headers, user_id=None):
             print(f"✗ No messages found in conversation {conversation_id}")
             continue
             
-        # Build a dict to deduplicate by ID (include original email and all conversation messages)
+                                                                                                  
         msg_dict = {}
         
-        # Add the original email first
+                                      
         orig_id = str(email.get("id")).lower()
         msg_dict[orig_id] = {
             "id": email.get("id"),
@@ -234,7 +234,7 @@ def retrieve_emails_by_sender_date(sender, date, headers, user_id=None):
             "conversationId": email.get("conversationId")
         }
         
-        # Add all conversation messages (this will overwrite the original if it's duplicated)
+                                                                                             
         for msg in conversation_messages:
             msg_id = str(msg.get("id")).lower()
             msg_dict[msg_id] = {
@@ -247,7 +247,7 @@ def retrieve_emails_by_sender_date(sender, date, headers, user_id=None):
                 "conversationId": msg.get("conversationId")
             }
         
-        # Sort all messages by receivedDateTime
+                                               
         output_msgs = sorted(msg_dict.values(), key=lambda m: m.get("receivedDateTime", ""))
         all_conversation_emails.extend(output_msgs)
         print(f"✓ Retrieved {len(output_msgs)} message(s) in conversation (including main email and all replies).")

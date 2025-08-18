@@ -5,11 +5,9 @@ from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 
 class AdvancedAnalyzer:
-    """Advanced data analysis with natural language insights."""
     
     @staticmethod
     def analyze_email_content(emails: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Advanced email content analysis."""
         if not emails:
             return {"error": "No emails to analyze"}
         
@@ -22,29 +20,29 @@ class AdvancedAnalyzer:
             "natural_summary": ""
         }
         
-        # Content analysis
+                          
         all_content = " ".join([
             email.get("subject", "") + " " + email.get("bodyPreview", "")
             for email in emails
         ]).lower()
         
-        # Extract key themes
+                            
         themes = AdvancedAnalyzer._extract_themes(all_content)
         analysis["content_insights"]["themes"] = themes
         
-        # Communication patterns
+                                
         senders = [email.get("from", "Unknown") for email in emails]
         sender_freq = Counter(senders)
         analysis["communication_patterns"]["top_senders"] = sender_freq.most_common(5)
         
-        # Priority analysis
+                           
         urgent_count = len([e for e in emails if any(
             keyword in e.get("subject", "").lower() or keyword in e.get("bodyPreview", "").lower()
             for keyword in ["urgent", "asap", "critical", "emergency"]
         )])
         analysis["priority_analysis"]["urgent_emails"] = urgent_count
         
-        # Timeline analysis
+                           
         dates = []
         for email in emails:
             date_str = email.get("receivedDateTime", "")
@@ -62,14 +60,13 @@ class AdvancedAnalyzer:
                 "total_days": (max(dates) - min(dates)).days + 1
             }
         
-        # Generate natural language summary
+                                           
         analysis["natural_summary"] = AdvancedAnalyzer._generate_email_summary(analysis)
         
         return analysis
     
     @staticmethod
     def analyze_meeting_patterns(meetings: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Advanced meeting pattern analysis."""
         if not meetings:
             return {"error": "No meetings to analyze"}
         
@@ -81,7 +78,7 @@ class AdvancedAnalyzer:
             "natural_summary": ""
         }
         
-        # Schedule analysis
+                           
         meeting_times = []
         durations = []
         for meeting in meetings:
@@ -103,7 +100,7 @@ class AdvancedAnalyzer:
             analysis["schedule_insights"]["avg_duration"] = sum(durations) / len(durations) if durations else 0
             analysis["schedule_insights"]["total_time"] = sum(durations)
         
-        # Participant analysis
+                              
         all_attendees = []
         organizers = []
         for meeting in meetings:
@@ -121,14 +118,13 @@ class AdvancedAnalyzer:
         analysis["participant_analysis"]["top_attendees"] = attendee_freq.most_common(5)
         analysis["participant_analysis"]["top_organizers"] = organizer_freq.most_common(5)
         
-        # Generate natural language summary
+                                           
         analysis["natural_summary"] = AdvancedAnalyzer._generate_meeting_summary(analysis)
         
         return analysis
     
     @staticmethod
     def analyze_file_usage(files: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Advanced file usage analysis."""
         if not files:
             return {"error": "No files to analyze"}
         
@@ -140,7 +136,7 @@ class AdvancedAnalyzer:
             "natural_summary": ""
         }
         
-        # Storage analysis
+                          
         total_size = sum(file.get("size", 0) for file in files)
         file_types = [file.get("name", "").split(".")[-1].lower() for file in files if "." in file.get("name", "")]
         type_freq = Counter(file_types)
@@ -150,7 +146,7 @@ class AdvancedAnalyzer:
         analysis["storage_insights"]["avg_file_size"] = total_size / len(files) if files else 0
         analysis["file_patterns"]["type_distribution"] = type_freq.most_common(5)
         
-        # Access patterns
+                         
         recent_files = []
         for file in files:
             modified = file.get("lastModifiedDateTime", "")
@@ -165,15 +161,14 @@ class AdvancedAnalyzer:
         analysis["access_patterns"]["recent_files"] = len(recent_files)
         analysis["access_patterns"]["recent_activity_ratio"] = len(recent_files) / len(files) if files else 0
         
-        # Generate natural language summary
+                                           
         analysis["natural_summary"] = AdvancedAnalyzer._generate_file_summary(analysis)
         
         return analysis
     
     @staticmethod
     def _extract_themes(content: str) -> List[str]:
-        """Extract key themes from content."""
-        # Remove common words
+                             
         stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours', 'his', 'hers', 'ours', 'theirs'}
         
         words = re.findall(r'\b\w{4,}\b', content.lower())
@@ -184,7 +179,6 @@ class AdvancedAnalyzer:
     
     @staticmethod
     def _generate_email_summary(analysis: Dict[str, Any]) -> str:
-        """Generate natural language email summary."""
         summary_parts = []
         
         if "communication_patterns" in analysis:
@@ -214,7 +208,6 @@ class AdvancedAnalyzer:
     
     @staticmethod
     def _generate_meeting_summary(analysis: Dict[str, Any]) -> str:
-        """Generate natural language meeting summary."""
         summary_parts = []
         
         if "schedule_insights" in analysis:
@@ -246,7 +239,6 @@ class AdvancedAnalyzer:
     
     @staticmethod
     def _generate_file_summary(analysis: Dict[str, Any]) -> str:
-        """Generate natural language file summary."""
         summary_parts = []
         
         if "storage_insights" in analysis:
