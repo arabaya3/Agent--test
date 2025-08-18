@@ -3,9 +3,15 @@ import sys
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+import logging
+import io
+import contextlib
 
                             
 load_dotenv()
+
+# Silence noisy third-party INFO logs (e.g., aixplain) by default
+logging.basicConfig(level=logging.WARNING)
 
                                  
 from agent.enhanced_smart_agent import EnhancedSmartAgent
@@ -72,17 +78,6 @@ def interactive_mode():
     agent = EnhancedSmartAgent()
     user_id = DEFAULT_USER_ID
     
-    print_banner()
-    print_help()
-    
-    print(f"\n Using user ID: {user_id}")
-    print("Type 'help' for query examples, 'quit' to exit")
-    print(" Real-time awareness: The assistant knows the current date and time")
-    print(" Chat mode: Say hello or ask general questions")
-    print(" Name resolution: Use names instead of emails (e.g., 'emails from John')")
-    print(" Follow-up conversations: Ask follow-up questions naturally")
-    print("📧 Smart last email: Intelligent detection of recent emails")
-    print("=" * 80)
     
     while True:
         try:
@@ -116,107 +111,30 @@ def interactive_mode():
                 continue
             
                                
-            print(f"\n Processing: {query}")
-            print("-" * 60)
             
+            # Suppress all internal prints while handling the query
             start_time = datetime.now()
-            result = agent.handle_query(query, user_id)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = agent.handle_query(query, user_id)
             end_time = datetime.now()
-            
-                             
-            print(f"\n Query completed in {(end_time - start_time).total_seconds():.2f}s")
-            print("=" * 60)
-            
-                                         
-            print(f"\n CHAT OUTPUT:")
+
+            # Print only the assistant's text
+            output_text = None
             if result.get("question_type") == "chat":
-                print(f"   {result.get('response', 'No response')}")
+                output_text = result.get("response")
             else:
-                                                        
-                natural = result.get("natural_response") or result.get("answer") or result.get("message")
-                if natural:
-                    print(f"   {natural}")
-                                        
-                items = result.get("items", [])
-                if items:
-                    print("\n   Items:")
-                    tool = result.get("tool", "")
-                    for i, item in enumerate(items, 1):
-                        try:
-                            if tool.startswith("email_"):
-                                from_addr = item.get("from", "Unknown")
-                                subject = item.get("subject", "No Subject")
-                                date = item.get("receivedDateTime", "Unknown")
-                                has_att = "Yes" if item.get("hasAttachments", False) else "No"
-                                print(f"   {i}. From: {from_addr} | Subject: {subject} | Date: {date} | Attachments: {has_att}")
-                            elif tool.startswith("calendar_") or tool.startswith("meeting_"):
-                                subject = item.get("subject", "No Subject")
-                                organizer = item.get("organizer", "Unknown")
-                                start = item.get("start", "Unknown")
-                                end = item.get("end", "Unknown")
-                                attendees = item.get("attendees", 0)
-                                print(f"   {i}. Subject: {subject} | Organizer: {organizer} | Start: {start} | End: {end} | Attendees: {attendees}")
-                            elif tool.startswith("onedrive_"):
-                                name = item.get("name", "Unknown")
-                                size = item.get("size", 0)
-                                size_mb = (size / (1024 * 1024)) if isinstance(size, (int, float)) else 0
-                                modified = item.get("lastModifiedDateTime", "Unknown")
-                                ftype = item.get("type", "File")
-                                print(f"   {i}. Name: {name} | Size: {size_mb:.2f} MB | Modified: {modified} | Type: {ftype}")
-                            else:
-                                                             
-                                print(f"   {i}. {item}")
-                        except Exception:
-                            print(f"   {i}. {item}")
-            
-                                          
-            if "answer" in result:
-                print(f"\n ANSWER:")
-                print(f"   {result['answer']}")
-            
-                                                 
-            if "advanced_insights" in result:
-                print(f"\n ADVANCED INSIGHTS:")
-                print(f"   {result['advanced_insights']}")
-            
-                                                                       
-            
-                                              
-            if "resolved_name" in result:
-                print(f"\n NAME RESOLUTION:")
-                print(f"   Name: {result['resolved_name']}")
-                print(f"   Email: {result.get('sender_email', 'Unknown')}")
-            
-                                    
-            if "conversation_context" in result:
-                context = result["conversation_context"]
-                print(f"\n FOLLOW-UP CONTEXT:")
-                print(f"   Last query type: {context.get('last_query_type', 'Unknown')}")
-                if context.get('last_analysis'):
-                    print(f"   Last analysis: {context['last_analysis'][:100]}...")
+                output_text = result.get("natural_response") or result.get("answer") or result.get("message")
+            if output_text:
+                print(output_text)
             
                                    
-            print(f"\n TECHNICAL DETAILS:")
-            print(f"   Tool used: {result.get('tool', 'Unknown')}")
-            print(f"   Question type: {result.get('question_type', 'Unknown')}")
-            print(f"   Data count: {result.get('data_count', 0)}")
-            print(f"   Timestamp: {result.get('timestamp', 'Unknown')}")
-            print(f"   Is follow-up: {result.get('is_follow_up', False)}")
             
-            if "analysis_question" in result:
-                print(f"   Analysis question: {result['analysis_question']}")
-            
-            if "error" in result:
-                print(f"    Error: {result['error']}")
-            
-            print("=" * 60)
             
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
             break
         except Exception as e:
-            print(f"\n Error: {e}")
-            print("Try rephrasing your query or type 'help' for examples")
+            print("Sorry, something went wrong.")
 
 def batch_mode():
     agent = EnhancedSmartAgent()

@@ -11,9 +11,9 @@ load_dotenv()
 
 def get_email_by_id(email_id, headers, user_id=None):
     if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}"
+        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     else:
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}"
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     try:
         print(f"[DEBUG] Requesting email: {url}")
         response = requests.get(url, headers=headers, timeout=30)
@@ -54,7 +54,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     else:
         user_prefix = "me"
     
-    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\"&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -71,7 +71,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
     try:
@@ -89,7 +89,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
     try:
@@ -107,7 +107,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     message_count = 0
     max_messages = 100
     while next_url and message_count < max_messages:
@@ -224,6 +224,7 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
             "receivedDateTime": email_data.get("receivedDateTime"),
             "hasAttachments": email_data.get("hasAttachments", False),
             "bodyPreview": (email_data.get("bodyPreview", "")[:100] + "..." if email_data.get("bodyPreview") else "No preview"),
+            "body": (email_data.get("body", {}) or {}).get("content", ""),
             "conversationId": email_data.get("conversationId")
         }
         
@@ -237,6 +238,7 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
                 "receivedDateTime": msg.get("receivedDateTime"),
                 "hasAttachments": msg.get("hasAttachments", False),
                 "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
+                "body": (msg.get("body", {}) or {}).get("content", ""),
                 "conversationId": msg.get("conversationId")
             }
         

@@ -12,13 +12,12 @@ load_dotenv()
 try:
     import aixplain as ax
     HAS_AIXPLAIN = True
-                                     
+                                      
     api_key = os.getenv("AIXPLAIN_API_KEY") or os.getenv("TEAM_API_KEY")
     if api_key:
-                                      
+                                       
         os.environ["TEAM_API_KEY"] = api_key
-except Exception as e:
-    print(f"Warning: AIXplain not available: {e}")
+except Exception:
     HAS_AIXPLAIN = False
 
 from shared.auth import get_access_token
@@ -508,8 +507,7 @@ Return only valid JSON, no additional text.
                         return decision
                     except json.JSONDecodeError:
                         return None
-        except Exception as e:
-            print(f"[AIXplain] Error: {e}")
+        except Exception:
             return None
     
     def _parse_dates(self, query: str) -> List[str]:
@@ -721,7 +719,6 @@ Return only valid JSON, no additional text.
         }
     
     def handle_query(self, query: str, default_user_id: Optional[str] = None) -> Dict[str, Any]:
-        print(f"[EnhancedSmartAgent] Processing query: {query}")
         
                                                   
         follow_up_keywords = ["what about", "and", "also", "too", "as well", "in addition", "furthermore", "moreover", "besides", "additionally"]
@@ -733,11 +730,9 @@ Return only valid JSON, no additional text.
         
                                                                                    
         if is_follow_up_query:
-            print("[EnhancedSmartAgent] Follow-up query detected, using rule-based logic")
             decision = self._decide_with_rules(query)
                                                                                       
         elif names and resolved_names:
-            print("[EnhancedSmartAgent] Name-based query detected, using rule-based logic")
             decision = self._decide_with_rules(query)
         else:
                                                         
@@ -745,7 +740,6 @@ Return only valid JSON, no additional text.
             
                                                              
             if not decision:
-                print("[EnhancedSmartAgent] Using fallback rule-based logic")
                 decision = self._decide_with_rules(query)
         
         tool = decision.get("tool")
@@ -755,12 +749,7 @@ Return only valid JSON, no additional text.
         resolved_name = decision.get("resolved_name")
         user_id = decision.get("user_id") or default_user_id
         
-        print(f"[EnhancedSmartAgent] Selected tool: {tool}")
-        print(f"[EnhancedSmartAgent] Question type: {question_type}")
-        print(f"[EnhancedSmartAgent] Analysis question: {analysis_question}")
-        print(f"[EnhancedSmartAgent] Is follow-up: {is_follow_up}")
-        if resolved_name:
-            print(f"[EnhancedSmartAgent] Resolved name: {resolved_name}")
+        
         
                              
         if tool == "chat":
@@ -795,8 +784,6 @@ Return only valid JSON, no additional text.
         
                                                  
         if tool == "email_by_sender_date_range":
-                                                                       
-            print("[EnhancedSmartAgent] Invalid tool 'email_by_sender_date_range' detected, using fallback")
             tool = "email_by_date_range"
                                                           
             end_date = datetime.now()

@@ -21,7 +21,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     else:
         user_prefix = "me"
     
-    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\"&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -40,7 +40,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
     try:
@@ -60,7 +60,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                                      
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
     try:
@@ -80,7 +80,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                                                                 
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
     message_count = 0
     max_messages = 100                              
     
@@ -127,9 +127,9 @@ def search_emails_by_date_range(start_date, end_date, headers, email_ids, user_i
     filtered_emails = []
     for eid in email_ids:
         if user_id:
-            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{eid}"
+            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{eid}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
         else:
-            url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+            url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -197,6 +197,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
             "receivedDateTime": email.get("receivedDateTime"),
             "hasAttachments": email.get("hasAttachments", False),
             "bodyPreview": (email.get("bodyPreview", "")[:100] + "..." if email.get("bodyPreview") else "No preview"),
+            "body": (email.get("body", {}) or {}).get("content", ""),
             "conversationId": email.get("conversationId")
         }
         
@@ -210,6 +211,7 @@ def retrieve_emails_by_date_range(start_date, end_date, headers, email_ids, user
                 "receivedDateTime": msg.get("receivedDateTime"),
                 "hasAttachments": msg.get("hasAttachments", False),
                 "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
+                "body": (msg.get("body", {}) or {}).get("content", ""),
                 "conversationId": msg.get("conversationId")
             }
         
