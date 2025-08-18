@@ -2,15 +2,14 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
+import os
 from shared.auth import get_access_token
 
 load_dotenv()
 
 def get_meeting_audience(meeting_id, headers, user_id=None):
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/events/{meeting_id}"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/me/events/{meeting_id}"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/events/{meeting_id}"
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()

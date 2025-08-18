@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime
+import os
 from dotenv import load_dotenv
 from shared.auth import get_access_token
 
@@ -16,10 +17,8 @@ def search_meetings_by_organizer_date(organizer, date, headers, user_id=None):
         print("Error: Date must be in YYYY-MM-DD format")
         return []
     
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/me/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/calendarView?startDateTime={start_datetime}&endDateTime={end_datetime}&$orderby=start/dateTime&$top=1000"
     
     all_meetings = []
     

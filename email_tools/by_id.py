@@ -4,16 +4,15 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 from urllib.parse import quote
+import os
 import time
 from .shared_email_ids import fetch_last_email_ids, get_cached_email_ids, get_access_token
 
 load_dotenv()
 
 def get_email_by_id(email_id, headers, user_id=None):
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}?$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{email_id}"
     try:
         print(f"[DEBUG] Requesting email: {url}")
         response = requests.get(url, headers=headers, timeout=30)
@@ -48,13 +47,10 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     import time
     base_url = "https://graph.microsoft.com/v1.0"
     
-                                                               
-    if user_id:
-        user_prefix = f"users/{user_id}"
-    else:
-        user_prefix = "me"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    user_prefix = f"users/{target_user_id}"
     
-    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\"&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -71,7 +67,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation ($search) {conversation_id}: {e}")
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
     try:
@@ -89,7 +85,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation (msgfolderroot) {conversation_id}: {e}")
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
     try:
@@ -107,7 +103,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
         print(f"Error retrieving conversation (inbox) {conversation_id}: {e}")
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
     max_messages = 100
     while next_url and message_count < max_messages:
@@ -138,10 +134,8 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     return []
 
 def get_recent_email_ids(headers, limit=10, user_id=None):
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages?$top={limit}&$select=id,subject,from,receivedDateTime&$orderby=receivedDateTime desc"
     try:
         print(f"[DEBUG] Getting recent email IDs...")
         response = requests.get(url, headers=headers, timeout=30)
@@ -170,8 +164,9 @@ def get_recent_email_ids(headers, limit=10, user_id=None):
 
 def search_emails_by_id(headers, email_ids):
     emails = []
+    target_user_id = os.getenv('DEFAULT_USER_ID')
     for eid in email_ids:
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{eid}"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -224,7 +219,6 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
             "receivedDateTime": email_data.get("receivedDateTime"),
             "hasAttachments": email_data.get("hasAttachments", False),
             "bodyPreview": (email_data.get("bodyPreview", "")[:100] + "..." if email_data.get("bodyPreview") else "No preview"),
-            "body": (email_data.get("body", {}) or {}).get("content", ""),
             "conversationId": email_data.get("conversationId")
         }
         
@@ -238,7 +232,6 @@ def retrieve_emails_by_ids(email_ids, headers, user_id=None):
                 "receivedDateTime": msg.get("receivedDateTime"),
                 "hasAttachments": msg.get("hasAttachments", False),
                 "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
-                "body": (msg.get("body", {}) or {}).get("content", ""),
                 "conversationId": msg.get("conversationId")
             }
         
@@ -286,7 +279,8 @@ def main():
     for eid in email_ids:
                                                                        
                                                                            
-        url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}?$select=id,subject"
+        target_user_id = os.getenv('DEFAULT_USER_ID')
+        url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{eid}?$select=id,subject"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:

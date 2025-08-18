@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime
+import os
 from dotenv import load_dotenv
 from urllib.parse import quote
 import time
@@ -16,13 +17,11 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
     base_url = "https://graph.microsoft.com/v1.0"
     
                                                                
-    if user_id:
-        user_prefix = f"users/{user_id}"
-    else:
-        user_prefix = "me"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    user_prefix = f"users/{target_user_id}"
     
                                  
-    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\"&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+    search_url = f"{base_url}/{user_prefix}/messages?$search=\"conversationId:{conversation_id}\""
     print(f"[DEBUG] Requesting ($search): {search_url}")
     try:
         response = requests.get(search_url, headers=headers, timeout=30)
@@ -41,7 +40,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                                                         
     allitems_url = (
         f"{base_url}/{user_prefix}/mailFolders/msgfolderroot/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (msgfolderroot): {allitems_url}")
     try:
@@ -61,7 +60,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                                      
     inbox_url = (
         f"{base_url}/{user_prefix}/mailFolders/inbox/messages?"
-        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+        f"$filter=conversationId eq '{conversation_id}'&$orderby=sentDateTime asc&$top=50"
     )
     print(f"[DEBUG] Requesting (inbox): {inbox_url}")
     try:
@@ -81,7 +80,7 @@ def get_conversation_messages(conversation_id, headers, user_id=None):
                                                                 
     print(f"[DEBUG] Trying limited fallback: fetching recent messages only...")
     all_msgs = []
-    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,hasAttachments,conversationId,body,bodyPreview"
+    next_url = f"{base_url}/{user_prefix}/messages?$top=100&$orderby=receivedDateTime desc"
     message_count = 0
     max_messages = 100                              
     
@@ -125,11 +124,9 @@ def search_emails_by_subject_and_date_range(subject, start_date, end_date, heade
         return []
     
     filtered_emails = []
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
     for eid in email_ids:
-        if user_id:
-            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages/{eid}"
-        else:
-            url = f"https://graph.microsoft.com/v1.0/me/messages/{eid}"
+        url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{eid}"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -198,7 +195,6 @@ def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers
             "receivedDateTime": email.get("receivedDateTime"),
             "hasAttachments": email.get("hasAttachments", False),
             "bodyPreview": (email.get("bodyPreview", "")[:100] + "..." if email.get("bodyPreview") else "No preview"),
-            "body": (email.get("body", {}) or {}).get("content", ""),
             "conversationId": email.get("conversationId")
         }
         
@@ -212,7 +208,6 @@ def retrieve_emails_by_subject_date_range(subject, start_date, end_date, headers
                 "receivedDateTime": msg.get("receivedDateTime"),
                 "hasAttachments": msg.get("hasAttachments", False),
                 "bodyPreview": (msg.get("bodyPreview", "")[:100] + "..." if msg.get("bodyPreview") else "No preview"),
-                "body": (msg.get("body", {}) or {}).get("content", ""),
                 "conversationId": msg.get("conversationId")
             }
         

@@ -2,15 +2,14 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
+import os
 from shared.auth import get_access_token
 
 load_dotenv()
 
 def search_meetings_by_title(title, headers, user_id=None):
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/me/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/events?$filter=contains(subject,'{title}')&$orderby=start/dateTime desc&$top=100"
     all_meetings = []
     try:
         while url:

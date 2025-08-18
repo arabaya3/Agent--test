@@ -245,10 +245,8 @@ def get_access_token():
     return get_app_token()
 
 def get_email_by_id(email_id, headers, user_id=None):
-    if user_id:
-        email_url = f'https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}'
-    else:
-        email_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}'
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    email_url = f'https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{email_id}'
     response = requests.get(email_url, headers=headers)
     
     if response.status_code == 200:
@@ -259,10 +257,8 @@ def get_email_by_id(email_id, headers, user_id=None):
         return None
 
 def get_attachments_for_email(email_id, headers, user_id=None):
-    if user_id:
-        att_url = f'https://graph.microsoft.com/v1.0/users/{user_id}/messages/{email_id}/attachments'
-    else:
-        att_url = f'https://graph.microsoft.com/v1.0/me/messages/{email_id}/attachments'
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    att_url = f'https://graph.microsoft.com/v1.0/users/{target_user_id}/messages/{email_id}/attachments'
     response = requests.get(att_url, headers=headers)
     
     if response.status_code == 200:

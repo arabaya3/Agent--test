@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import os
 from shared.auth import get_access_token
 
 load_dotenv()
@@ -12,11 +13,8 @@ def fetch_last_email_ids(headers, limit=100, user_id=None):
     limit = min(max(1, int(limit)), 100)
     
                                                                
-    if user_id:
-        url = f"https://graph.microsoft.com/v1.0/users/{user_id}/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
-    else:
-                                                    
-        url = f"https://graph.microsoft.com/v1.0/me/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
+    target_user_id = user_id or os.getenv('DEFAULT_USER_ID')
+    url = f"https://graph.microsoft.com/v1.0/users/{target_user_id}/messages?$top={limit}&$select=id&$orderby=receivedDateTime desc"
     
     try:
         response = requests.get(url, headers=headers, timeout=20)

@@ -1,165 +1,264 @@
-# Core-Assistant-Pipeline
+# Core Assistant Pipeline - AIXPLAIN Smart Agent System
 
-An intelligent executive assistant that retrieves and analyzes emails, meetings/calendar, and OneDrive files via Microsoft Graph. It supports conversational queries with follow-ups, name resolution, real-time date handling, and optional AIXplain-powered features. The app launches directly in interactive mode and prints a clean Chat Output with readable item lines plus a concise Technical Details block.
+## 🎯 Overview
 
-## Highlights
+The Core Assistant Pipeline is a sophisticated Microsoft 365 integration system powered by **AIXPLAIN Smart Agents**. It provides intelligent, context-aware assistance for managing emails, meetings, calendar events, and OneDrive files through natural language queries.
 
-- Real-time awareness (current date/time, relative dates)
-- Conversational chat with follow-ups (short-term memory)
-- Name-based queries (use names instead of emails)
-- Intelligent last-email detection
-- Retrieval and analysis for emails, meetings, and files
-- Optional AIXplain integration with rule-based fallback
-- Clean console output (no emojis, no summary/context blocks)
+## 🧠 AIXPLAIN Smart Agent Architecture
 
-## Prerequisites
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MASTER AGENT                             │
+│              (Query Classification & Routing)               │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    │             │             │
+┌───▼───┐   ┌────▼────┐   ┌────▼────┐
+│EMAIL  │   │CALENDAR │   │ONEDRIVE │
+│AGENT  │   │ AGENT   │   │ AGENT   │
+└───────┘   └─────────┘   └─────────┘
+    │             │             │
+┌───▼───┐   ┌────▼────┐   ┌────▼────┐
+│MEETING│   │AIXPLAIN │   │AIXPLAIN │
+│AGENT  │   │ANALYSIS │   │ANALYSIS │
+└───────┘   └─────────┘   └─────────┘
+```
 
-- Python 3.10+ (3.11 recommended)
-- A Microsoft Entra ID application (App Registration) with application permissions to Microsoft Graph (see below)
+### Specialized Agents
 
-## Clone
+- **📧 Email Agent**: Intelligent email processing with pattern analysis
+- **📅 Calendar Agent**: Smart calendar management and scheduling insights
+- **📁 OneDrive Agent**: Advanced file management with AI-powered filtering
+- **🎯 Meeting Agent**: Comprehensive meeting analysis and transcript processing
+
+## 🚀 Quick Start
+
+### 1. Installation
 
 ```bash
-git clone https://github.com/arabaya3/Core-Assistant-Pipeline.git
+git clone <repository-url>
 cd Core-Assistant-Pipeline
-```
-
-## Project Structure (simplified)
-
-```
-Core-Assistant-Pipeline/
-├── agent/
-│   ├── enhanced_smart_agent.py
-│   └── advanced_analyzer.py
-├── enhanced_assistant_master.py
-├── email_tools/
-├── calendar_tools/
-├── meeting_tools/
-├── onedrive_tools/
-├── shared/
-├── requirements.txt
-├── AIXPLAIN_SETUP.md
-├── APPLICATION_PERMISSIONS_README.md
-├── ENV_SETUP_INSTRUCTIONS.md
-└── README.md
-```
-
-## Setup
-
-1) Create and activate a virtual environment (recommended)
-```bash
-python -m venv .venv
-# PowerShell
-.\.venv\Scripts\Activate.ps1
-# or CMD
-.\.venv\Scripts\activate.bat
-```
-
-2) Install dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-3) Create .env and fill:
-```env
-# Microsoft Graph application credentials
+### 2. Environment Setup
+
+Create a `.env` file:
+
+```bash
+# AIXPLAIN Configuration
+AIXPLAIN_API_KEY=your_aixplain_api_key_here
+AIXPLAIN_MODEL_ID=your_model_id_here
+TEAM_API_KEY=your_team_api_key_here
+
+# Microsoft Graph
 CLIENT_ID=your_client_id
 TENANT_ID=your_tenant_id
 CLIENT_SECRET=your_client_secret
-
-# AIXplain (optional)
-AIXPLAIN_API_KEY=your_aixplain_api_key
-AIXPLAIN_MODEL_ID=gpt-4
-
-# Default user (UPN) for application-permission flows
-DEFAULT_USER_ID=user@domain.com
-
-# Optional debugging and switches
-DEBUG_AUTH=0        # set to 1 to print token roles/scopes when acquiring a token
-USE_GRAPH_BETA=0    # set to 1 to use the beta Graph base URL for certain endpoints
+DEFAULT_USER_ID=executive.assistant@menadevs.io
 ```
 
-4) Grant Microsoft Graph permissions (application) and admin consent. See APPLICATION_PERMISSIONS_README.md. Commonly required:
-- Mail.Read
-- Calendars.Read
-- Files.Read.All (and often Sites.Read.All)
-- OnlineMeetings.Read.All
-- OnlineMeetingTranscript.Read.All (for transcripts)
+### 3. Get AIXPLAIN Credentials
 
-### Azure app registration quick guide
+1. Sign up at [https://aixplain.com](https://aixplain.com)
+2. Create an API key in your dashboard
+3. Select a model (recommended: GPT-4 or Claude)
+4. Get your Team API key for advanced features
 
-1. Register an app in Entra ID (App registrations) and create a client secret
-2. Add the application permissions above under API permissions (Microsoft Graph)
-3. Click Grant admin consent
-4. Put CLIENT_ID, TENANT_ID, CLIENT_SECRET into your .env
-5. Optionally set DEBUG_AUTH=1, then run once to confirm the token roles printed include OnlineMeetingTranscript.Read.All and OnlineMeetings.Read.All
+### 4. Run the System
 
-## Run
+```bash
+# Interactive mode
+python enhanced_assistant_master.py
 
-Interactive mode:
+# Demo mode
+python enhanced_assistant_master.py demo
+
+# Batch mode
+python enhanced_assistant_master.py batch "emails from today" "meetings this week"
+```
+
+## 🎯 Capabilities
+
+### Email Management
+- **Smart Query Understanding**: "Show me urgent emails from yesterday"
+- **Sender Analysis**: "Find emails from mohammad.mowas@menadevs.io"
+- **Pattern Recognition**: "Analyze my email patterns from last week"
+- **Attachment Filtering**: "Get emails with attachments"
+
+### Calendar & Meetings
+- **Meeting Retrieval**: "What meetings do I have today?"
+- **Organizer Filtering**: "Show meetings organized by John"
+- **Transcript Access**: "Get transcript for yesterday's meeting"
+- **Attendance Tracking**: "Who attended the project meeting?"
+
+### File Management
+- **Intelligent Listing**: "List my OneDrive files"
+- **Type Filtering**: "Show me PDF documents"
+- **Size Analysis**: "Find files larger than 10MB"
+- **Storage Insights**: "Analyze my file storage"
+
+### Multi-Domain Queries
+- **Cross-Reference**: "Show me emails about meetings from today"
+- **Summary Requests**: "Give me a summary of my week"
+- **Pattern Analysis**: "What are my most frequent activities?"
+
+## 📁 Project Structure
+
+```
+Core-Assistant-Pipeline/
+├── agents/                          # AIXPLAIN Smart Agents
+│   ├── __init__.py
+│   ├── master_agent.py             # Orchestrator agent
+│   ├── email_agent.py              # Email specialist
+│   ├── calendar_agent.py           # Calendar specialist
+│   ├── onedrive_agent.py           # File specialist
+│   └── meeting_agent.py            # Meeting specialist
+├── email_tools/                     # Email processing tools
+├── calendar_tools/                  # Calendar processing tools
+├── meeting_tools/                   # Meeting processing tools
+├── onedrive_tools/                  # File processing tools
+├── shared/                          # Shared utilities
+├── enhanced_assistant_master.py     # Main application
+├── AIXPLAIN_SETUP.md               # Detailed setup guide
+└── requirements.txt                 # Dependencies
+```
+
+## 🔧 Configuration
+
+### AIXPLAIN Models
+
+| Model | Use Case | Performance | Cost |
+|-------|----------|-------------|------|
+| `gpt-4` | Complex analysis, multi-agent coordination | High | High |
+| `gpt-3.5-turbo` | General queries, good balance | Medium | Medium |
+| `claude-3-sonnet` | Detailed analysis, document processing | High | Medium |
+| `claude-3-haiku` | Fast responses, simple queries | Fast | Low |
+
+### Environment Variables
+
+```bash
+# Required for AIXPLAIN functionality
+AIXPLAIN_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AIXPLAIN_MODEL_ID=gpt-4
+TEAM_API_KEY=team_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Required for Microsoft Graph
+CLIENT_ID=your_client_id
+TENANT_ID=your_tenant_id
+CLIENT_SECRET=your_client_secret
+DEFAULT_USER_ID=executive.assistant@menadevs.io
+```
+
+## 🧪 Testing
+
+### Basic Functionality Test
+
 ```bash
 python enhanced_assistant_master.py
 ```
 
-Inside interactive mode:
-- help shows examples
-- time prints current date/time
-- user switches the target user UPN
-- quit exits
+Try these queries:
+- "hello"
+- "emails from today"
+- "meetings this week"
+- "list my files"
 
-## Output format
+### AIXPLAIN Integration Test
 
-Each query prints:
-- Chat Output: natural response and Items list when applicable
-  - Emails: From | Subject | Date | Attachments
-  - Meetings: Subject | Organizer | Start | End | Attendees
-  - Files: Name | Size MB | Modified | Type
-- Technical Details: tool, question type, data count, timestamp, is follow-up
+```bash
+# Test with complex queries that require AI analysis
+"Analyze my email patterns from last week"
+"Summarize my meeting schedule"
+"Find important documents in my OneDrive"
+```
 
-## Example queries
+### Batch Testing
 
-Emails
-- emails from today
-- emails from john.doe@domain.com today
-- emails from John
-- last email
-- recent emails
-- who sent the most emails last week
+```bash
+python enhanced_assistant_master.py batch "emails from today" "meetings this week" "list files"
+```
 
-Meetings
-- meetings today
-- meetings this week
-- meetings next week
-- who organized the most meetings last month
-- meeting transcript for id https://teams.microsoft.com/l/meetup-join/...
+## 🚨 Troubleshooting
 
-Files (OneDrive)
-- list files
-- list files in "Documents"
-- download onedrive file "/Documents/Report.pdf" to "C:\\Users\\User\\Downloads\\Report.pdf"
-- upload "./Local.docx" to "/Documents/Local.docx"
+### Common Issues
 
-Follow-ups
-- emails from John -> what about Sarah?
-- and Mike too
-- also show me recent files
+1. **AIXPLAIN Import Error**
+   ```bash
+   pip install aixplain==0.2.33
+   ```
 
-## Notes on meeting transcripts (application permissions)
+2. **Authentication Failed**
+   - Check your API keys in `.env` file
+   - Verify AIXPLAIN credentials
 
-- Transcript API requires OnlineMeetingTranscript.Read.All (application). OnlineMeetings.Read.All helps locate meetings.
-- Always call user-scoped endpoints with app-only tokens: /users/{USER_ID}/onlineMeetings/{meetingId}/transcripts
-- Provide either a Teams join URL, a numeric conference id, or a calendar event id; the app attempts to resolve these to the correct onlineMeeting id.
-- Transcription must have been enabled and started during the meeting.
+3. **Fallback Mode Active**
+   - Check AIXPLAIN credentials and internet connection
+   - System will work with rule-based fallback
 
-## How it works (brief)
+### Debug Mode
 
-- Single agent: agent/enhanced_smart_agent.py
-  - Optional AIXplain model for intent; rule-based fallback is always available
-  - Real-time date parsing and last-email heuristics
-  - NameResolver to map names to emails
-  - Short-term conversation memory for follow-ups
-  - AdvancedAnalyzer for basic natural-language insights
+```bash
+export DEBUG=1
+python enhanced_assistant_master.py
+```
 
-## License
+## 📊 Performance Features
 
-MIT License – see LICENSE
+- **Intelligent Caching**: Email IDs and meeting data cached for faster retrieval
+- **Batch Processing**: Efficient handling of multiple queries
+- **Fallback System**: Graceful degradation when AIXPLAIN is unavailable
+- **Parallel Processing**: Multi-agent coordination for complex queries
+
+## 🔐 Security
+
+- **API Key Protection**: Environment variables for sensitive data
+- **Data Privacy**: AIXPLAIN processes data according to privacy policy
+- **Access Control**: Application permissions for Microsoft Graph
+- **No Data Storage**: All processing done in-memory
+
+## 📈 Advanced Features
+
+### Custom Prompts
+Customize AIXPLAIN prompts in each agent for specific use cases.
+
+### Multi-Agent Coordination
+The master agent coordinates multiple agents for complex queries.
+
+### Custom Analysis
+Add custom analysis functions to each agent.
+
+## 📞 Support
+
+- **AIXPLAIN Issues**: [support@aixplain.com](mailto:support@aixplain.com)
+- **Microsoft Graph**: [Microsoft Graph documentation](https://docs.microsoft.com/graph)
+- **System Issues**: Check troubleshooting section in `AIXPLAIN_SETUP.md`
+
+## 🎉 Success Indicators
+
+Your system is working correctly when you see:
+
+1. ✅ "AIXPLAIN Smart Agent System initialized"
+2. ✅ "Email Agent AIXPLAIN initialized"
+3. ✅ "Calendar Agent AIXPLAIN initialized"
+4. ✅ "OneDrive Agent AIXPLAIN initialized"
+5. ✅ "Meeting Agent AIXPLAIN initialized"
+6. ✅ Complex queries return AIXPLAIN analysis
+7. ✅ Natural language responses are intelligent and contextual
+
+## 🚀 Next Steps
+
+1. **Customize Prompts**: Adapt AIXPLAIN prompts for your specific use cases
+2. **Add New Agents**: Create specialized agents for other data sources
+3. **Integrate with Web UI**: Build a web interface for the agent system
+4. **Add Analytics**: Track query patterns and system performance
+5. **Scale Up**: Deploy to production with proper monitoring
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+**Powered by AIXPLAIN SDK v0.2.33** 🎯
