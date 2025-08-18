@@ -12,6 +12,18 @@ An intelligent executive assistant that retrieves and analyzes emails, meetings/
 - Optional AIXplain integration with rule-based fallback
 - Clean console output (no emojis, no summary/context blocks)
 
+## Prerequisites
+
+- Python 3.10+ (3.11 recommended)
+- A Microsoft Entra ID application (App Registration) with application permissions to Microsoft Graph (see below)
+
+## Clone
+
+```bash
+git clone https://github.com/arabaya3/Core-Assistant-Pipeline.git
+cd Core-Assistant-Pipeline
+```
+
 ## Project Structure (simplified)
 
 ```
@@ -34,12 +46,21 @@ Core-Assistant-Pipeline/
 
 ## Setup
 
-1) Install dependencies
+1) Create and activate a virtual environment (recommended)
+```bash
+python -m venv .venv
+# PowerShell
+.\.venv\Scripts\Activate.ps1
+# or CMD
+.\.venv\Scripts\activate.bat
+```
+
+2) Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-2) Create .env and fill:
+3) Create .env and fill:
 ```env
 # Microsoft Graph application credentials
 CLIENT_ID=your_client_id
@@ -52,14 +73,26 @@ AIXPLAIN_MODEL_ID=gpt-4
 
 # Default user (UPN) for application-permission flows
 DEFAULT_USER_ID=user@domain.com
+
+# Optional debugging and switches
+DEBUG_AUTH=0        # set to 1 to print token roles/scopes when acquiring a token
+USE_GRAPH_BETA=0    # set to 1 to use the beta Graph base URL for certain endpoints
 ```
 
-3) Grant Microsoft Graph permissions (application) and admin consent. See APPLICATION_PERMISSIONS_README.md. Commonly required:
+4) Grant Microsoft Graph permissions (application) and admin consent. See APPLICATION_PERMISSIONS_README.md. Commonly required:
 - Mail.Read
 - Calendars.Read
 - Files.Read.All (and often Sites.Read.All)
 - OnlineMeetings.Read.All
 - OnlineMeetingTranscript.Read.All (for transcripts)
+
+### Azure app registration quick guide
+
+1. Register an app in Entra ID (App registrations) and create a client secret
+2. Add the application permissions above under API permissions (Microsoft Graph)
+3. Click Grant admin consent
+4. Put CLIENT_ID, TENANT_ID, CLIENT_SECRET into your .env
+5. Optionally set DEBUG_AUTH=1, then run once to confirm the token roles printed include OnlineMeetingTranscript.Read.All and OnlineMeetings.Read.All
 
 ## Run
 

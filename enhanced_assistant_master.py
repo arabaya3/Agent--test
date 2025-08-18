@@ -28,7 +28,7 @@ def print_help():
     print("  • 'what time is it?', 'what day is today?'")
     print("  • 'what can you do?', 'help'")
     print()
-    print("📧 EMAIL QUERIES (with real-time dates & names):")
+    print(" EMAIL QUERIES (with real-time dates & names):")
     print("  • 'emails from today'")
     print("  • 'emails from yesterday'")
     print("  • 'emails from last week'")
