@@ -1,5 +1,5 @@
 {
-    "expiry": 1753353796.4108083,
+    "expiry": 1755673347.7057188,
     "data": {
         "paraphrasing": {
             "id": "paraphrasing",
@@ -2970,6 +2970,44 @@
                 }
             }
         },
+        "image-embedding": {
+            "id": "image-embedding",
+            "name": "Image Embedding",
+            "description": null,
+            "params": [
+                {
+                    "name": "language",
+                    "code": "language",
+                    "required": true,
+                    "dataType": "label",
+                    "dataSubType": "label"
+                },
+                {
+                    "name": "image",
+                    "code": "image",
+                    "required": false,
+                    "dataType": "image",
+                    "dataSubType": "image"
+                }
+            ],
+            "output": [
+                {
+                    "name": "data",
+                    "code": "data",
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "image-text"
+                ],
+                "metaData": {
+                    "InputType": "image",
+                    "OutputType": "text",
+                    "description": "Image Embedding is a process that transforms an image into a fixed-dimensional vector representation, capturing its essential features and enabling efficient comparison, retrieval, and analysis in various machine learning and computer vision tasks."
+                }
+            }
+        },
         "ocr": {
             "id": "ocr",
             "name": "OCR",
@@ -3014,9 +3052,9 @@
                 }
             }
         },
-        "image-embedding": {
-            "id": "image-embedding",
-            "name": "Image Embedding",
+        "intent-classification": {
+            "id": "intent-classification",
+            "name": "Intent Classification",
             "description": null,
             "params": [
                 {
@@ -3027,28 +3065,28 @@
                     "dataSubType": "label"
                 },
                 {
-                    "name": "image",
-                    "code": "image",
+                    "name": "text",
+                    "code": "text",
                     "required": false,
-                    "dataType": "image",
-                    "dataSubType": "image"
+                    "dataType": "text",
+                    "dataSubType": "text"
                 }
             ],
             "output": [
                 {
                     "name": "data",
                     "code": "data",
-                    "dataType": "text"
+                    "dataType": "label"
                 }
             ],
             "metadata": {
                 "modalities": [
-                    "image-text"
+                    "text-label"
                 ],
                 "metaData": {
-                    "InputType": "image",
-                    "OutputType": "text",
-                    "description": "Image Embedding is a process that transforms an image into a fixed-dimensional vector representation, capturing its essential features and enabling efficient comparison, retrieval, and analysis in various machine learning and computer vision tasks."
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Intent Classification is a natural language processing task that involves analyzing and categorizing user text input to determine the underlying purpose or goal behind the communication, such as booking a flight, asking for weather information, or setting a reminder."
                 }
             }
         },
@@ -3135,44 +3173,6 @@
                     "InputType": "audio",
                     "OutputType": "label",
                     "description": "The ASR Age Classification function is designed to analyze audio recordings of speech to determine the speaker's age group by leveraging automatic speech recognition (ASR) technology and machine learning algorithms."
-                }
-            }
-        },
-        "intent-classification": {
-            "id": "intent-classification",
-            "name": "Intent Classification",
-            "description": null,
-            "params": [
-                {
-                    "name": "language",
-                    "code": "language",
-                    "required": true,
-                    "dataType": "label",
-                    "dataSubType": "label"
-                },
-                {
-                    "name": "text",
-                    "code": "text",
-                    "required": false,
-                    "dataType": "text",
-                    "dataSubType": "text"
-                }
-            ],
-            "output": [
-                {
-                    "name": "data",
-                    "code": "data",
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-label"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Intent Classification is a natural language processing task that involves analyzing and categorizing user text input to determine the underlying purpose or goal behind the communication, such as booking a flight, asking for weather information, or setting a reminder."
                 }
             }
         },
@@ -5145,420 +5145,6 @@
                 }
             }
         },
-        "other-(multipurpose)": {
-            "id": "other-(multipurpose)",
-            "name": "Other (Multipurpose)",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Text",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "text"
-                }
-            ],
-            "metadata": {
-                "modalities": [],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "text",
-                    "description": "The \"Other (Multipurpose)\" function serves as a versatile category designed to accommodate a wide range of tasks and activities that do not fit neatly into predefined classifications, offering flexibility and adaptability for various needs."
-                }
-            }
-        },
-        "multi-label-text-classification": {
-            "id": "multi-label-text-classification",
-            "name": "Multi Label Text Classification",
-            "description": null,
-            "params": [
-                {
-                    "name": "language",
-                    "code": "language",
-                    "required": true,
-                    "dataType": "label",
-                    "dataSubType": "label"
-                },
-                {
-                    "name": "text",
-                    "code": "text",
-                    "required": false,
-                    "dataType": "text",
-                    "dataSubType": "text"
-                }
-            ],
-            "output": [
-                {
-                    "name": "data",
-                    "code": "data",
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-label"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Multi Label Text Classification is a natural language processing task where a given text is analyzed and assigned multiple relevant labels or categories from a predefined set, allowing for the text to belong to more than one category simultaneously."
-                }
-            }
-        },
-        "object-detection": {
-            "id": "object-detection",
-            "name": "Object Detection",
-            "description": null,
-            "params": [
-                {
-                    "name": "Image",
-                    "code": "image",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "image",
-                    "dataSubType": "image",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-number"
-                ],
-                "metaData": {
-                    "InputType": "video",
-                    "OutputType": "text",
-                    "description": "Object Detection is a computer vision technology that identifies and locates objects within an image, typically by drawing bounding boxes around the detected objects and classifying them into predefined categories."
-                }
-            }
-        },
-        "text-segmenation": {
-            "id": "text-segmenation",
-            "name": "Text Segmentation",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "json",
-                    "multipleValues": true
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Text",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "text"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-text"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "text",
-                    "description": "Text Segmentation is the process of dividing a continuous text into meaningful units, such as words, sentences, or topics, to facilitate easier analysis and understanding."
-                }
-            }
-        },
-        "speech-embedding": {
-            "id": "speech-embedding",
-            "name": "Speech Embedding",
-            "description": null,
-            "params": [
-                {
-                    "name": "Audio",
-                    "code": "audio",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "audio",
-                    "dataSubType": "audio",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Text",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "text"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "audio-embedding"
-                ],
-                "metaData": {
-                    "InputType": "audio",
-                    "OutputType": "text",
-                    "description": "Transforms spoken content into a fixed-size vector in a high-dimensional space that captures the content's essence. Facilitates tasks like speech recognition and speaker verification."
-                }
-            }
-        },
-        "text-classification": {
-            "id": "text-classification",
-            "name": "Text Classification",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Categorizes text into predefined groups or topics, facilitating content organization and targeted actions."
-                }
-            }
-        },
-        "text-generation-metric-default": {
-            "id": "text-generation-metric-default",
-            "name": "Text Generation Metric Default",
-            "description": null,
-            "params": [
-                {
-                    "name": "Hypotheses",
-                    "code": "hypotheses",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": true,
-                    "defaultValues": []
-                },
-                {
-                    "name": "References",
-                    "code": "references",
-                    "required": false,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": true,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Sources",
-                    "code": "sources",
-                    "required": false,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": true,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Score Identifier",
-                    "code": "score_identifier",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false
-                }
-            ],
-            "output": [
-                {
-                    "name": "Score",
-                    "code": "data",
-                    "dataType": "text"
-                }
-            ],
-            "metadata": {
-                "modalities": [],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "text",
-                    "description": "The \"Text Generation Metric Default\" function provides a standard set of evaluation metrics for assessing the quality and performance of text generation models."
-                }
-            }
-        },
-        "text-spam-detection": {
-            "id": "text-spam-detection",
-            "name": "Text Spam Detection",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-label"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Identifies and filters out unwanted or irrelevant text content, ideal for moderating user-generated content or ensuring quality in communication platforms."
-                }
-            }
-        },
         "audio-transcript-analysis": {
             "id": "audio-transcript-analysis",
             "name": "Audio Transcript Analysis",
@@ -5632,6 +5218,411 @@
                     "InputType": "audio",
                     "OutputType": "text",
                     "description": "Analyzes transcribed audio data for insights, patterns, or specific information extraction."
+                }
+            }
+        },
+        "speech-embedding": {
+            "id": "speech-embedding",
+            "name": "Speech Embedding",
+            "description": null,
+            "params": [
+                {
+                    "name": "Audio",
+                    "code": "audio",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "audio",
+                    "dataSubType": "audio",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Text",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "audio-embedding"
+                ],
+                "metaData": {
+                    "InputType": "audio",
+                    "OutputType": "text",
+                    "description": "Transforms spoken content into a fixed-size vector in a high-dimensional space that captures the content's essence. Facilitates tasks like speech recognition and speaker verification."
+                }
+            }
+        },
+        "speech-translation": {
+            "id": "speech-translation",
+            "name": "Speech Translation",
+            "description": null,
+            "params": [
+                {
+                    "name": "Source Audio",
+                    "code": "source_audio",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "audio",
+                    "dataSubType": "audio",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Source Language",
+                    "code": "sourcelanguage",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Target Language",
+                    "code": "targetlanguage",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Voice",
+                    "code": "voice",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Target text",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "audio-text"
+                ],
+                "metaData": {
+                    "InputType": "audio",
+                    "OutputType": "text",
+                    "description": "Speech Translation is a technology that converts spoken language in real-time from one language to another, enabling seamless communication between speakers of different languages."
+                }
+            }
+        },
+        "speaker-diarization-video": {
+            "id": "speaker-diarization-video",
+            "name": "Speaker Diarization Video",
+            "description": null,
+            "params": [
+                {
+                    "name": "Video",
+                    "code": "video",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "video",
+                    "dataSubType": "video",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "video"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "video-label"
+                ],
+                "metaData": {
+                    "InputType": "video",
+                    "OutputType": "label",
+                    "description": "Segments a video based on different speakers, identifying when each individual speaks. Useful for transcriptions and understanding multi-person conversations."
+                }
+            }
+        },
+        "text-classification": {
+            "id": "text-classification",
+            "name": "Text Classification",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Categorizes text into predefined groups or topics, facilitating content organization and targeted actions."
+                }
+            }
+        },
+        "text-denormalization": {
+            "id": "text-denormalization",
+            "name": "Text Denormalization",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false
+                },
+                {
+                    "name": "To Lower Case",
+                    "code": "lowercase_latin",
+                    "required": false,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "boolean",
+                    "multipleValues": false,
+                    "defaultValues": [
+                        {
+                            "value": "0",
+                            "label": "No"
+                        }
+                    ],
+                    "availableOptions": []
+                },
+                {
+                    "name": "Remove Accents",
+                    "code": "remove_accents",
+                    "required": false,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "boolean",
+                    "multipleValues": false,
+                    "defaultValues": [
+                        {
+                            "value": "1",
+                            "label": "Yes"
+                        }
+                    ],
+                    "availableOptions": []
+                },
+                {
+                    "name": "Remove Punctuation",
+                    "code": "remove_punctuation",
+                    "required": false,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "boolean",
+                    "multipleValues": false,
+                    "defaultValues": [
+                        {
+                            "value": "0",
+                            "label": "No"
+                        }
+                    ],
+                    "availableOptions": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-text"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Converts standardized or normalized text into its original, often more readable, form. Useful in natural language generation tasks."
+                }
+            }
+        },
+        "object-detection": {
+            "id": "object-detection",
+            "name": "Object Detection",
+            "description": null,
+            "params": [
+                {
+                    "name": "Image",
+                    "code": "image",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "image",
+                    "dataSubType": "image",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-number"
+                ],
+                "metaData": {
+                    "InputType": "video",
+                    "OutputType": "text",
+                    "description": "Object Detection is a computer vision technology that identifies and locates objects within an image, typically by drawing bounding boxes around the detected objects and classifying them into predefined categories."
                 }
             }
         },
@@ -5737,6 +5728,228 @@
                     "InputType": "text",
                     "OutputType": "text",
                     "description": "Converts text from one language to another while maintaining the original message's essence and context. Crucial for global communication."
+                }
+            }
+        },
+        "guardrails": {
+            "id": "guardrails",
+            "name": "Guardrails",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-text",
+                    "text-label"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "text",
+                    "description": " Guardrails are governance rules that enforce security, compliance, and operational best practices, helping prevent mistakes and detect suspicious activity"
+                }
+            }
+        },
+        "text-segmenation": {
+            "id": "text-segmenation",
+            "name": "Text Segmentation",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "json",
+                    "multipleValues": true
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Text",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-text"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "text",
+                    "description": "Text Segmentation is the process of dividing a continuous text into meaningful units, such as words, sentences, or topics, to facilitate easier analysis and understanding."
+                }
+            }
+        },
+        "text-generation-metric-default": {
+            "id": "text-generation-metric-default",
+            "name": "Text Generation Metric Default",
+            "description": null,
+            "params": [
+                {
+                    "name": "Hypotheses",
+                    "code": "hypotheses",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": true,
+                    "defaultValues": []
+                },
+                {
+                    "name": "References",
+                    "code": "references",
+                    "required": false,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": true,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Sources",
+                    "code": "sources",
+                    "required": false,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": true,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Score Identifier",
+                    "code": "score_identifier",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false
+                }
+            ],
+            "output": [
+                {
+                    "name": "Score",
+                    "code": "data",
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "text",
+                    "description": "The \"Text Generation Metric Default\" function provides a standard set of evaluation metrics for assessing the quality and performance of text generation models."
+                }
+            }
+        },
+        "multi-label-text-classification": {
+            "id": "multi-label-text-classification",
+            "name": "Multi Label Text Classification",
+            "description": null,
+            "params": [
+                {
+                    "name": "language",
+                    "code": "language",
+                    "required": true,
+                    "dataType": "label",
+                    "dataSubType": "label"
+                },
+                {
+                    "name": "text",
+                    "code": "text",
+                    "required": false,
+                    "dataType": "text",
+                    "dataSubType": "text"
+                }
+            ],
+            "output": [
+                {
+                    "name": "data",
+                    "code": "data",
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-label"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Multi Label Text Classification is a natural language processing task where a given text is analyzed and assigned multiple relevant labels or categories from a predefined set, allowing for the text to belong to more than one category simultaneously."
+                }
+            }
+        },
+        "other-(multipurpose)": {
+            "id": "other-(multipurpose)",
+            "name": "Other (Multipurpose)",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Text",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "text"
+                }
+            ],
+            "metadata": {
+                "modalities": [],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "text",
+                    "description": "The \"Other (Multipurpose)\" function serves as a versatile category designed to accommodate a wide range of tasks and activities that do not fit neatly into predefined classifications, offering flexibility and adaptability for various needs."
                 }
             }
         },
@@ -5859,313 +6072,6 @@
                 }
             }
         },
-        "speaker-diarization-video": {
-            "id": "speaker-diarization-video",
-            "name": "Speaker Diarization Video",
-            "description": null,
-            "params": [
-                {
-                    "name": "Video",
-                    "code": "video",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "video",
-                    "dataSubType": "video",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "video"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "video-label"
-                ],
-                "metaData": {
-                    "InputType": "video",
-                    "OutputType": "label",
-                    "description": "Segments a video based on different speakers, identifying when each individual speaks. Useful for transcriptions and understanding multi-person conversations."
-                }
-            }
-        },
-        "text-denormalization": {
-            "id": "text-denormalization",
-            "name": "Text Denormalization",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false
-                },
-                {
-                    "name": "To Lower Case",
-                    "code": "lowercase_latin",
-                    "required": false,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "boolean",
-                    "multipleValues": false,
-                    "defaultValues": [
-                        {
-                            "value": "0",
-                            "label": "No"
-                        }
-                    ],
-                    "availableOptions": []
-                },
-                {
-                    "name": "Remove Accents",
-                    "code": "remove_accents",
-                    "required": false,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "boolean",
-                    "multipleValues": false,
-                    "defaultValues": [
-                        {
-                            "value": "1",
-                            "label": "Yes"
-                        }
-                    ],
-                    "availableOptions": []
-                },
-                {
-                    "name": "Remove Punctuation",
-                    "code": "remove_punctuation",
-                    "required": false,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "boolean",
-                    "multipleValues": false,
-                    "defaultValues": [
-                        {
-                            "value": "0",
-                            "label": "No"
-                        }
-                    ],
-                    "availableOptions": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-text"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Converts standardized or normalized text into its original, often more readable, form. Useful in natural language generation tasks."
-                }
-            }
-        },
-        "offensive-language-identification": {
-            "id": "offensive-language-identification",
-            "name": "Offensive Language Identification",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Language",
-                    "code": "language",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-label"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "label",
-                    "description": "Detects language or phrases that might be considered offensive, aiding in content moderation and creating respectful user interactions."
-                }
-            }
-        },
-        "speech-translation": {
-            "id": "speech-translation",
-            "name": "Speech Translation",
-            "description": null,
-            "params": [
-                {
-                    "name": "Source Audio",
-                    "code": "source_audio",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "audio",
-                    "dataSubType": "audio",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Source Language",
-                    "code": "sourcelanguage",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Target Language",
-                    "code": "targetlanguage",
-                    "required": true,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Dialect",
-                    "code": "dialect",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Voice",
-                    "code": "voice",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                },
-                {
-                    "name": "Script",
-                    "code": "script",
-                    "required": false,
-                    "isFixed": true,
-                    "dataType": "label",
-                    "dataSubType": "label",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Target text",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "text"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "audio-text"
-                ],
-                "metaData": {
-                    "InputType": "audio",
-                    "OutputType": "text",
-                    "description": "Speech Translation is a technology that converts spoken language in real-time from one language to another, enabling seamless communication between speakers of different languages."
-                }
-            }
-        },
         "text-generation": {
             "id": "text-generation",
             "name": "Text Generation",
@@ -6247,6 +6153,136 @@
                     "InputType": "text",
                     "OutputType": "text",
                     "description": "Creates coherent and contextually relevant textual content based on prompts or certain parameters. Useful for chatbots, content creation, and data augmentation."
+                }
+            }
+        },
+        "offensive-language-identification": {
+            "id": "offensive-language-identification",
+            "name": "Offensive Language Identification",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-label"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Detects language or phrases that might be considered offensive, aiding in content moderation and creating respectful user interactions."
+                }
+            }
+        },
+        "text-spam-detection": {
+            "id": "text-spam-detection",
+            "name": "Text Spam Detection",
+            "description": null,
+            "params": [
+                {
+                    "name": "Text",
+                    "code": "text",
+                    "required": true,
+                    "isFixed": false,
+                    "dataType": "text",
+                    "dataSubType": "text",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Language",
+                    "code": "language",
+                    "required": true,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Dialect",
+                    "code": "dialect",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                },
+                {
+                    "name": "Script",
+                    "code": "script",
+                    "required": false,
+                    "isFixed": true,
+                    "dataType": "label",
+                    "dataSubType": "label",
+                    "multipleValues": false,
+                    "defaultValues": []
+                }
+            ],
+            "output": [
+                {
+                    "name": "Label",
+                    "code": "data",
+                    "defaultValue": [],
+                    "dataType": "label"
+                }
+            ],
+            "metadata": {
+                "modalities": [
+                    "text-label"
+                ],
+                "metaData": {
+                    "InputType": "text",
+                    "OutputType": "label",
+                    "description": "Identifies and filters out unwanted or irrelevant text content, ideal for moderating user-generated content or ensuring quality in communication platforms."
                 }
             }
         },
@@ -6527,42 +6563,6 @@
                     "InputType": "audio",
                     "OutputType": "text",
                     "description": "Converts spoken language into written text. Useful for transcription services, voice assistants, and applications requiring voice-to-text capabilities."
-                }
-            }
-        },
-        "guardrails": {
-            "id": "guardrails",
-            "name": "Guardrails",
-            "description": null,
-            "params": [
-                {
-                    "name": "Text",
-                    "code": "text",
-                    "required": true,
-                    "isFixed": false,
-                    "dataType": "text",
-                    "dataSubType": "text",
-                    "multipleValues": false,
-                    "defaultValues": []
-                }
-            ],
-            "output": [
-                {
-                    "name": "Label",
-                    "code": "data",
-                    "defaultValue": [],
-                    "dataType": "label"
-                }
-            ],
-            "metadata": {
-                "modalities": [
-                    "text-text",
-                    "text-label"
-                ],
-                "metaData": {
-                    "InputType": "text",
-                    "OutputType": "text",
-                    "description": " Guardrails are governance rules that enforce security, compliance, and operational best practices, helping prevent mistakes and detect suspicious activity"
                 }
             }
         }
