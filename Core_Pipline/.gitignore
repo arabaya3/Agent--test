@@ -51,4 +51,9 @@ Thumbs.db
 *.log
 *.html
 *.xml
-*.json 
+*.json
+
+# Authentication tokens and cache files
+.msal_token_cache.bin
+*.token
+*.cache 
