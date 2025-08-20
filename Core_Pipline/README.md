@@ -22,7 +22,7 @@ All tools are CLI-based and run directly from the terminal.
 1) Clone and enter the project directory
 
 ```powershell
-git clone <your-repo-url>
+git clone https://github.com/arabaya3/Agent--test.git
 cd Core_Pipline
 ```
 
