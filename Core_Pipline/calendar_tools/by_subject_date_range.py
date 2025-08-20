@@ -109,6 +109,7 @@ def retrieve_meetings_by_subject_date_range(subject, start_date, end_date, user_
             attendees_count = len(meeting.get("attendees", []))
             
             print(f"{i}. Subject: {meeting_subject}")
+            print(f"   ID: {meeting.get('id', 'Unknown')}")
             print(f"   Organizer: {organizer}")
             print(f"   Start: {start_time}")
             print(f"   End: {end_time}")

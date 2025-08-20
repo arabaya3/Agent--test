@@ -106,6 +106,7 @@ def retrieve_meetings_by_organizer_date(organizer, date, user_id=None):
             attendees_count = len(meeting.get("attendees", []))
             
             print(f"{i}. Subject: {subject}")
+            print(f"   ID: {meeting.get('id', 'Unknown')}")
             print(f"   Organizer: {organizer_email}")
             print(f"   Start: {start_time}")
             print(f"   End: {end_time}")

@@ -1,245 +1,281 @@
+import argparse
 import os
-import requests
-import json
-import base64
 import sys
+from datetime import datetime
+from typing import Optional, Tuple, List
+
+import requests
+from msal import PublicClientApplication, SerializableTokenCache
 from dotenv import load_dotenv
 
-# Add the parent directory to the path to import shared modules
-try:
-    from shared.auth import get_access_token
-except ImportError:
-    # If running directly, add the parent directory to the path
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    from shared.auth import get_access_token
 
-load_dotenv()
+GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
 
-def _graph_base():
-    return "https://graph.microsoft.com/beta" if os.getenv("USE_GRAPH_BETA", "0") == "1" else "https://graph.microsoft.com/v1.0"
 
-def _odata_quote(value: str) -> str:
-    return value.replace("'", "''") if isinstance(value, str) else value
+def _parse_scopes(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return [
+            "User.Read",
+            "OnlineMeetings.Read",
+            "OnlineMeetingTranscript.Read.All",
+        ]
+    # Support space- or comma-separated
+    separators = [",", " "]
+    scopes: List[str] = [raw]
+    for sep in separators:
+        if sep in raw:
+            scopes = [s.strip() for s in raw.replace(",", " ").split() if s.strip()]
+            break
+    return scopes
 
-def _looks_like_conference_id(value: str) -> bool:
-    return isinstance(value, str) and value.isdigit() and 6 <= len(value) <= 15
 
-def resolve_online_meeting_id_from_conference_id(conference_id: str, headers, user_id: str, max_pages: int = 5):
-    try:
-        url = f"{_graph_base()}/users/{user_id}/onlineMeetings"
-        params = {"$top": 50, "$select": "id,joinWebUrl,audioConferencing"}
-        pages_checked = 0
-        while url and pages_checked < max_pages:
-            resp = requests.get(url, headers=headers, params=params if pages_checked == 0 else None)
-            if resp.status_code == 403:
-                print("Access denied while listing online meetings. Ensure OnlineMeetings.Read.All is granted and consented.")
-                return None
-            resp.raise_for_status()
-            data = resp.json()
-            for item in data.get("value", []):
-                ac = item.get("audioConferencing") or {}
-                if ac.get("conferenceId") == conference_id:
-                    return item.get("id")
-            url = data.get("@odata.nextLink")
-            pages_checked += 1
-        print("No online meeting matched the provided conference ID.")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"Error resolving meeting ID from conference ID: {e}")
-        return None
+def load_config() -> Tuple[str, str, str, List[str], str]:
+    load_dotenv()
+    tenant_id = os.getenv("TENANT_ID")
+    client_id = os.getenv("CLIENT_ID")
+    delegated_scopes = _parse_scopes(os.getenv("DELEGATED_SCOPES"))
+    cache_path = os.getenv("TOKEN_CACHE_PATH") or os.path.join(
+        os.path.expanduser("~"), ".msal", "transcript_tool_cache.bin"
+    )
 
-def resolve_online_meeting_id_from_event_id(event_id: str, headers, user_id: str):
-    try:
-        url = f"{_graph_base()}/users/{user_id}/events/{event_id}"
-        params = {"$select": "onlineMeeting,webLink"}
-        resp = requests.get(url, headers=headers, params=params)
-        if resp.status_code == 403:
-            print("Access denied reading event. Ensure Calendars.Read (Application) is granted and consented.")
-            return None
-        if resp.status_code == 404:
-            print("Event not found for the provided ID.")
-            return None
-        resp.raise_for_status()
-        evt = resp.json()
-                                                                                                                           
-        join_url = None
-        om = evt.get("onlineMeeting") or {}
-        join_url = om.get("joinUrl") or om.get("joinWebUrl")
-        if not join_url:
-            wl = evt.get("webLink")
-            if isinstance(wl, str) and "teams.microsoft.com/l/meetup-join" in wl:
-                join_url = wl
-        if not join_url:
-            print("Could not extract a Teams join URL from the event.")
-            return None
-        return resolve_online_meeting_id_from_join_url(join_url, headers, user_id)
-    except requests.exceptions.RequestException as e:
-        print(f"Error resolving meeting from event: {e}")
-        return None
+    if not tenant_id or not client_id:
+        print("TENANT_ID and CLIENT_ID must be set in .env", file=sys.stderr)
+        sys.exit(1)
 
-def resolve_online_meeting_id_from_join_url(join_url, headers, user_id):
-    if not user_id:
-        print("Error: A user_id (UPN/email) is required to resolve online meetings when using application permissions.")
-        return None
-    try:
-        url = f"{_graph_base()}/users/{user_id}/onlineMeetings"
-                                                      
-        params = {"$filter": f"JoinWebUrl eq '{_odata_quote(join_url)}'"}
-        resp = requests.get(url, headers=headers, params=params)
-        if resp.status_code == 403:
-            print("Access denied while resolving online meeting by join URL. Ensure the app has OnlineMeetings.Read.All and admin consent.")
-            return None
-        resp.raise_for_status()
-        value = resp.json().get("value", [])
-        if not value:
-            print("No online meeting found for the provided join URL.")
-            return None
-        meeting_id = value[0].get("id")
-        if not meeting_id:
-            print("Found meeting but no id field returned.")
-            return None
-        return meeting_id
-    except requests.exceptions.RequestException as e:
-        print(f"Error resolving meeting ID from join URL: {e}")
-        return None
+    authority = f"https://login.microsoftonline.com/{tenant_id}"
+    return tenant_id, client_id, authority, delegated_scopes, cache_path
 
-def get_transcript_by_meeting_id(meeting_id, headers, user_id=None):
-                                                                                  
-                                                                       
-    if not user_id:
-        user_id = os.getenv('DEFAULT_USER_ID')
-    if not user_id:
-        print("Error: user_id is required for transcript retrieval with application permissions. Set DEFAULT_USER_ID in .env or pass user_id.")
-        return None
 
-    if _looks_like_conference_id(meeting_id):
-        print("Warning: The provided value looks like a dial-in conference ID, not an onlineMeeting ID. Provide the Teams join URL or the onlineMeeting id.")
-    url = f"{_graph_base()}/users/{user_id}/onlineMeetings/{meeting_id}/transcripts"
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 403:
+def _ensure_dir(path: str) -> None:
+    directory = os.path.dirname(path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+
+
+def acquire_token(authority: str, client_id: str, scopes: List[str], cache_path: str) -> str:
+    cache = SerializableTokenCache()
+    if os.path.exists(cache_path):
+        try:
+            cache.deserialize(open(cache_path, "r").read())
+        except Exception:
+            # If cache is corrupted, start fresh
+            cache = SerializableTokenCache()
+
+    app = PublicClientApplication(client_id=client_id, authority=authority, token_cache=cache)
+
+    # Try silent from cache first
+    accounts = app.get_accounts()
+    if accounts:
+        result = app.acquire_token_silent(scopes=scopes, account=accounts[0])
+        if result and "access_token" in result:
+            return result["access_token"]
+
+    # Device code interactive flow (one-time; will persist to cache)
+    flow = app.initiate_device_flow(scopes=scopes)
+    if "user_code" not in flow:
+        print("Failed to create device code flow.", file=sys.stderr)
+        sys.exit(1)
+    print(flow["message"])  # instruct user
+    result = app.acquire_token_by_device_flow(flow)
+
+    if "access_token" not in result:
+        print(f"Authentication failed: {result}", file=sys.stderr)
+        sys.exit(1)
+
+    # Persist cache after successful interactive auth
+    if cache.has_state_changed:
+        try:
+            _ensure_dir(cache_path)
+            with open(cache_path, "w") as f:
+                f.write(cache.serialize())
+        except PermissionError:
+            # Fallback to a local, writable path within the project directory
+            local_cache_path = os.path.join(os.getcwd(), ".msal_cache.bin")
             try:
-                body = response.text[:500]
-                print(f"Raw 403 body: {body}")
-            except Exception:
-                pass
-            print(
-                "Access denied: You do not have permission to access transcripts for this meeting.\n"
-                "Please ensure your Azure admin has granted the required permissions and granted admin consent.\n"
-                "Required (application) permission: OnlineMeetingTranscript.Read.All (and OnlineMeetings.Read.All to locate the meeting).\n"
-                "Note: With app-only tokens, you must call /users/{USER_ID}/... (not /me) and the meetingId must be an onlineMeeting id."
-            )
+                with open(local_cache_path, "w") as f:
+                    f.write(cache.serialize())
+                print(f"Note: TOKEN_CACHE_PATH not writable. Using local cache: {local_cache_path}")
+            except Exception as e:
+                print(f"Warning: Failed to save token cache ({e}). Continuing without persistent cache.")
+
+    return result["access_token"]
+
+
+def graph_get(url: str, token: str, params: Optional[dict] = None, headers: Optional[dict] = None) -> requests.Response:
+    hdrs = {"Authorization": f"Bearer {token}"}
+    if headers:
+        hdrs.update(headers)
+    response = requests.get(url, headers=hdrs, params=params)
+    return response
+
+
+def resolve_meeting_id(meeting_input: str, token: str) -> Optional[str]:
+    # If it's a URL, resolve by joinWebUrl
+    if meeting_input.lower().startswith("http://") or meeting_input.lower().startswith("https://"):
+        url = f"{GRAPH_BASE_URL}/me/onlineMeetings"
+        params = {"$filter": f"joinWebUrl eq '{meeting_input}'"}
+        resp = graph_get(url, token, params=params)
+        if resp.status_code == 200:
+            data = resp.json()
+            values = data.get("value", [])
+            if values:
+                return values[0]["id"]
+        else:
+            print(f"Failed to search meeting by joinWebUrl: {resp.status_code} {resp.text}", file=sys.stderr)
             return None
-        if response.status_code == 404:
-            print("Transcript not found for this meeting.")
-            return None
-        response.raise_for_status()
-        data = response.json()
-        transcripts = data.get("value", [])
-        if not transcripts:
-            print("No transcript available for this meeting.")
-            return None
-                                                     
-        transcript_id = transcripts[0].get("id")
-                                         
-        transcript_url = f"{_graph_base()}/users/{user_id}/onlineMeetings/{meeting_id}/transcripts/{transcript_id}/content"
-        content_headers = dict(headers)
-        content_headers["Accept"] = "text/plain, text/vtt, application/json"
-        transcript_resp = requests.get(transcript_url, headers=content_headers)
-        transcript_resp.raise_for_status()
-        return transcript_resp.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error retrieving transcript: {e}")
+
+    # Try treating it as the Graph onlineMeeting id
+    url = f"{GRAPH_BASE_URL}/me/onlineMeetings/{meeting_input}"
+    resp = graph_get(url, token)
+    if resp.status_code == 200:
+        return resp.json().get("id")
+
+    # Try resolving by joinMeetingIdSettings/joinMeetingId (often shown in Teams invites)
+    url = f"{GRAPH_BASE_URL}/me/onlineMeetings"
+    params = {"$filter": f"joinMeetingIdSettings/joinMeetingId eq '{meeting_input}'"}
+    resp = graph_get(url, token, params=params)
+    if resp.status_code == 200:
+        data = resp.json()
+        values = data.get("value", [])
+        if values:
+            return values[0]["id"]
+
+    print("Could not resolve meeting. Provide a valid meeting Graph id, join URL, or meeting ID.", file=sys.stderr)
+    return None
+
+
+def pick_latest_transcript(transcripts: list) -> Optional[dict]:
+    if not transcripts:
         return None
 
-def retrieve_transcript_by_meeting_id(meeting_id, user_id=None):
-    print("============================================================")
-    print("Meeting Transcript Retriever")
-    print("============================================================")
-    print(f"Input: {meeting_id}")
-    print("============================================================")
-    
-    access_token = get_access_token()
-    if not access_token:
-        return None
-    
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
+    def parse_dt(item):
+        dt = item.get("createdDateTime") or item.get("lastModifiedDateTime")
+        try:
+            return datetime.fromisoformat(dt.replace("Z", "+00:00")) if dt else datetime.min
+        except Exception:
+            return datetime.min
 
-                                                                                                      
-    try:
-        parts = access_token.split(".")
-        if len(parts) >= 2:
-            padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
-            payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
-            has_roles = bool(payload.get("roles"))
-            has_scp = bool(payload.get("scp"))
-            if not has_roles and has_scp:
-                print("Error: A delegated (user) token was detected. Transcript retrieval requires APPLICATION permissions (app-only token with app roles such as OnlineMeetingTranscript.Read.All).")
-                return None
-    except Exception:
-                                                 
-        pass
+    transcripts_sorted = sorted(transcripts, key=parse_dt, reverse=True)
+    return transcripts_sorted[0]
 
-                                                      
-    user_id = user_id or os.getenv('DEFAULT_USER_ID')
-    if not user_id:
-        print("Error: user_id is required. Set DEFAULT_USER_ID in .env or pass user_id explicitly.")
-        return None
 
-                                                                                            
-    if isinstance(meeting_id, str) and (meeting_id.startswith("http://") or meeting_id.startswith("https://")):
-        print("Detected join URL. Resolving online meeting ID...")
-        resolved_id = resolve_online_meeting_id_from_join_url(meeting_id, headers, user_id)
-        if not resolved_id:
-            print("Could not resolve an online meeting from the join URL.")
-            return None
-        meeting_id = resolved_id
-        print(f"Resolved onlineMeeting ID: {meeting_id}")
-    elif _looks_like_conference_id(meeting_id):
-        print("Detected dial-in conference ID. Attempting to resolve the onlineMeeting ID...")
-        resolved_id = resolve_online_meeting_id_from_conference_id(meeting_id, headers, user_id)
-        if not resolved_id:
-            print("Could not resolve an online meeting from the conference ID.")
-            return None
-        meeting_id = resolved_id
-        print(f"Resolved onlineMeeting ID: {meeting_id}")
-    else:
-                                                                             
-        print("Input does not look like a join URL or conference ID. Attempting to resolve from event ID...")
-        resolved_id = resolve_online_meeting_id_from_event_id(meeting_id, headers, user_id)
-        if resolved_id:
-            meeting_id = resolved_id
-            print(f"Resolved onlineMeeting ID from event: {meeting_id}")
+def get_meeting_subject(meeting_id: str, token: str) -> str:
+    url = f"{GRAPH_BASE_URL}/me/onlineMeetings/{meeting_id}"
+    resp = graph_get(url, token)
+    if resp.status_code == 200:
+        try:
+            subject = (resp.json() or {}).get("subject")
+            if isinstance(subject, str) and subject.strip():
+                return subject.strip()
+        except Exception:
+            pass
+    return meeting_id
 
-    print(f"Retrieving transcript for onlineMeeting ID: {meeting_id} as user: {user_id}")
-    transcript = get_transcript_by_meeting_id(meeting_id, headers, user_id)
-    if transcript:
-        print("\nTranscript Content:\n")
-        print(transcript)
-    else:
-        print("No transcript found or accessible for this meeting. Ensure transcription was enabled during the meeting and that the app has OnlineMeetingTranscript.Read.All.")
-    return transcript
 
-def main():
-    print("============================================================")
-    print("Meeting Transcript Retriever")
-    print("============================================================")
-    
-    # Get user ID for application permissions
-    target_user = os.getenv("DEFAULT_USER_ID")
-    if not target_user:
-        print("Error: DEFAULT_USER_ID not set. Cannot retrieve meeting transcripts.")
-        return
-    
-    meeting_id = input("Enter meeting ID: ").strip()
+def _safe_filename(name: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in (" ", "-", "_") else "_" for ch in name).strip()
+    safe = "_".join(safe.split())
+    return safe or "meeting"
+
+
+def get_transcript_content(meeting_id: str, token: str, fmt: str) -> Tuple[bytes, str]:
+    # List transcripts for the meeting
+    list_url = f"{GRAPH_BASE_URL}/me/onlineMeetings/{meeting_id}/transcripts"
+    list_resp = graph_get(list_url, token)
+    if list_resp.status_code != 200:
+        print(f"Failed to list transcripts: {list_resp.status_code} {list_resp.text}", file=sys.stderr)
+        sys.exit(1)
+
+    items = list_resp.json().get("value", [])
+    if not items:
+        print("No transcripts available for this meeting.", file=sys.stderr)
+        sys.exit(2)
+
+    chosen = pick_latest_transcript(items)
+    transcript_id = chosen["id"]
+
+    # Download content
+    content_url = f"{GRAPH_BASE_URL}/me/onlineMeetings/{meeting_id}/transcripts/{transcript_id}/content"
+    # Graph currently supports text-based transcript content (e.g., text/vtt). If DOCX is requested,
+    # fetch VTT and convert locally.
+    accept = "text/vtt"
+    content_resp = graph_get(content_url, token, headers={"Accept": accept})
+    if content_resp.status_code != 200:
+        print(f"Failed to download transcript content: {content_resp.status_code} {content_resp.text}", file=sys.stderr)
+        sys.exit(1)
+
+    # Always return VTT bytes here; caller handles conversion when needed
+    return content_resp.content, "vtt"
+
+
+def run_tool(meeting_value: str, fmt: str = "vtt") -> str:
+    _, client_id, authority, scopes, cache_path = load_config()
+    token = acquire_token(authority=authority, client_id=client_id, scopes=scopes, cache_path=cache_path)
+
+    meeting_id = resolve_meeting_id(meeting_value, token)
     if not meeting_id:
-        print("Error: Meeting ID is required")
+        sys.exit(1)
+
+    vtt_bytes, _ = get_transcript_content(meeting_id, token, fmt)
+
+    subject = get_meeting_subject(meeting_id, token)
+    base_name = f"{_safe_filename(subject)}_transctipt"
+    out_dir = os.path.join(os.getcwd(), "saved_transcripts")
+    os.makedirs(out_dir, exist_ok=True)
+
+    if fmt == "vtt":
+        out_name = os.path.join(out_dir, f"{base_name}.vtt")
+        with open(out_name, "wb") as f:
+            f.write(vtt_bytes)
+        print(f"Saved transcript to {out_name}")
+        return out_name
+
+    # DOCX conversion path
+    try:
+        from docx import Document  # python-docx
+    except Exception:
+        out_name = os.path.join(out_dir, f"{base_name}.vtt")
+        with open(out_name, "wb") as f:
+            f.write(vtt_bytes)
+        print("python-docx is not installed. Saved VTT instead. Install with: pip install python-docx")
+        print(f"Saved transcript to {out_name}")
+        return out_name
+
+    text = vtt_bytes.decode("utf-8", errors="replace")
+    doc = Document()
+    doc.add_heading("Teams Meeting Transcript", level=1)
+    doc.add_paragraph(text)
+    out_name = os.path.join(out_dir, f"{base_name}.docx")
+    doc.save(out_name)
+    print(f"Saved transcript to {out_name}")
+    return out_name
+
+
+def _interactive_main() -> None:
+    meeting_value = input("Enter a meeting Graph id, join URL, or joinMeetingId value: ").strip()
+    if not meeting_value:
+        print("Error: input is required.")
         return
-    
-    retrieve_transcript_by_meeting_id(meeting_id, target_user)
+    fmt = input("Choose format (vtt/docx) [vtt]: ").strip().lower() or "vtt"
+    if fmt not in ("vtt", "docx"):
+        print("Invalid format. Using vtt.")
+        fmt = "vtt"
+    run_tool(meeting_value, fmt)
+
+
+def main() -> None:
+    # If invoked via menu (no argv passed), fall back to interactive prompts
+    if len(sys.argv) == 1:
+        _interactive_main()
+        return
+
+    parser = argparse.ArgumentParser(description="Download a Microsoft Teams meeting transcript via Microsoft Graph (delegated auth with device code and persistent cache).")
+    parser.add_argument("meeting", help="Meeting Graph id, join URL, or joinMeetingId value")
+    parser.add_argument("--format", dest="fmt", choices=["vtt", "docx"], default="vtt", help="Output format (default: vtt)")
+    args = parser.parse_args()
+
+    run_tool(args.meeting, args.fmt)
+
 
 if __name__ == "__main__":
     main()

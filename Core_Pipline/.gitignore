@@ -55,5 +55,6 @@ Thumbs.db
 
 # Authentication tokens and cache files
 .msal_token_cache.bin
+.msal_cache.bin
 *.token
 *.cache 
