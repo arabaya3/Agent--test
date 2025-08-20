@@ -4,7 +4,7 @@ This project is a menu-driven toolbox for working with Microsoft 365 via Microso
 
 - Email tools: retrieve emails by IDs, sender, subject, date ranges; view and extract attachments
 - Calendar tools: query meetings by date, date range, organizer, or subject
-- Meeting tools: look up meetings by ID or title, fetch participation/attendance, and retrieve transcripts
+- Meeting tools: look up meetings by ID or title, fetch participation/attendance, and retrieve transcripts (saved to `saved_transcripts/`)
 - OneDrive tools: list, download, upload files; view items shared with you (delegated)
 
 All tools are CLI-based and run directly from the terminal.
@@ -15,6 +15,7 @@ All tools are CLI-based and run directly from the terminal.
 - Python 3.9+
 - An Azure AD app registration with appropriate Microsoft Graph permissions (see Permissions)
 - Windows, macOS, or Linux (examples assume Windows PowerShell)
+- Packages: `requests`, `python-dotenv`, `msal` (and optionally `python-docx` for DOCX transcript export)
 
 
 ### Installation
@@ -45,7 +46,7 @@ pip install -r requirements.txt
 Create a file named `.env` in the project root with the following variables. Values depend on your Azure app(s) and tenant.
 
 ```ini
-# App-only (application) auth — required for most tools
+# App-only (application) auth — used by email/calendar/onedrive and attendance tools
 TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 CLIENT_SECRET=your_client_secret
@@ -58,20 +59,18 @@ DEFAULT_USER_ID=user@contoso.com
 DEBUG_AUTH=0              # set to 1/true to print token diagnostics
 USE_GRAPH_BETA=0          # set to 1 to allow beta endpoints in transcript tool when needed
 
-# Delegated (user) auth — only needed for shared_with_me and some delegated flows
+# Delegated (user) auth — used by transcript tool (device code flow)
 # Use a Public client app with "Allow public client flows" enabled (no secret)
-PUBLIC_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-DELEGATED_SCOPES=Files.Read offline_access   # optional; defaults provided by the tool
-
-# Optional delegated username/password for ROPC (only if allowed by tenant policy; MFA must be off)
-GRAPH_USERNAME=user@contoso.com
-GRAPH_PASSWORD=your_password
+# The transcript tool reads CLIENT_ID (public client) and uses device code; no CLIENT_SECRET is needed.
+DELEGATED_SCOPES=User.Read OnlineMeetings.Read OnlineMeetingTranscript.Read.All
+# Optional: change where the device-code token cache is stored
+TOKEN_CACHE_PATH=%USERPROFILE%\.msal\transcript_tool_cache.bin
 ```
 
 
 ### Permissions (Microsoft Graph)
 
-Grant these permissions to your Azure app(s), then click “Grant admin consent”. Some tools use app-only permissions; the Shared With Me tool uses delegated permissions.
+Grant these permissions to your Azure app(s), then click “Grant admin consent”. Application permissions are used for most tools; transcripts use delegated permissions.
 
 - Email tools (read messages and attachments)
   - Application: `Mail.Read`
@@ -81,8 +80,8 @@ Grant these permissions to your Azure app(s), then click “Grant admin consent�
 
 - Meeting tools
   - Lookups by ID/title: Application: `Calendars.Read`
-  - Attendance reports: Application: `OnlineMeetings.Read.All`
-  - Transcripts: Application: `OnlineMeetingTranscript.Read.All` (and typically `OnlineMeetings.Read.All`)
+  - Attendance reports (by meeting ID/join URL/event ID): Application: `OnlineMeetings.Read.All`
+  - Transcripts (delegated via device code): Delegated scopes such as `User.Read`, `OnlineMeetings.Read`, `OnlineMeetingTranscript.Read.All`
 
 - OneDrive tools (app-only mailbox/drive operations)
   - List/Download: Application: `Files.Read.All`
@@ -149,14 +148,14 @@ python onedrive_tools\shared_with_me.py   # delegated auth
 
 - Meeting tools
   - `by_id.py`, `by_title.py`: Find and display meeting details (application: `Calendars.Read`).
-  - `attendance.py`: Attempts multiple strategies to fetch attendance reports for a meeting (application: `OnlineMeetings.Read.All`).
-  - `transcript.py`: Resolves a Teams online meeting ID from a join URL, conference ID, or event; retrieves transcript content if available (application: `OnlineMeetingTranscript.Read.All`). Set `USE_GRAPH_BETA=1` if your tenant requires the Beta endpoint.
+  - `attendance.py`: Enter an onlineMeeting ID, Teams join URL, or calendar event ID; the tool resolves it to an onlineMeeting and fetches attendance reports with detailed records (application: `OnlineMeetings.Read.All`).
+  - `transcript.py` (delegated): Device-code sign-in, accepts a join URL, joinMeetingId, or onlineMeeting ID; resolves and downloads the latest transcript. Saves under `saved_transcripts/` as `{MeetingName}_transctipt.vtt` or `.docx`. Default delegated scopes come from `DELEGATED_SCOPES`. Install `python-docx` to export DOCX; otherwise VTT is saved.
 
 - OneDrive tools
   - `list_files.py` (application): Lists items in a user’s drive or a subfolder under `/users/{DEFAULT_USER_ID}/drive`.
   - `retrieve_files.py` (application): Downloads a file by path; optionally saves locally and prints metadata.
   - `upload_files.py` (application): Uploads a local file to a destination path; supports small and large files (chunked).
-  - `shared_with_me.py` (delegated): Signs in a user (device code or ROPC), lists items shared-with-me, and allows viewing text content. Requires `PUBLIC_CLIENT_ID` and delegated scopes.
+  - `shared_with_me.py` (delegated): Signs in a user (device code or ROPC), lists items shared-with-me, and allows viewing text content. Requires a public client and delegated scopes.
 
 
 ### Common setup pitfalls and fixes
@@ -164,7 +163,8 @@ python onedrive_tools\shared_with_me.py   # delegated auth
 - 403 Forbidden / access denied
   - Ensure the app has the exact application permissions listed above, and that admin consent has been granted in Azure Portal.
   - App-only tokens must target a specific user with `/users/{DEFAULT_USER_ID}/...`; set `DEFAULT_USER_ID` in `.env`.
-  - For transcript/attendance, double-check `OnlineMeetings.Read.All` and `OnlineMeetingTranscript.Read.All` application permissions.
+  - For attendance (application), confirm `OnlineMeetings.Read.All`.
+  - For transcript (delegated), confirm the delegated scopes include `OnlineMeetings.Read` and `OnlineMeetingTranscript.Read.All`. The tool filters out reserved scopes automatically.
 
 - 404 Not found for messages/events/files
   - Confirm `DEFAULT_USER_ID` points to the correct mailbox/OneDrive account and that the resource exists in that tenant.
@@ -180,6 +180,19 @@ python onedrive_tools\shared_with_me.py   # delegated auth
 
 - Rate limits / large result sets
   - Tools include paging and reasonable limits; narrow your filters if you hit limits.
+
+### Transcript tool CLI examples (delegated)
+
+```powershell
+# Default VTT
+python meeting_tools\transcript.py "https://teams.microsoft.com/l/meetup-join/..."
+
+# Explicit format
+python meeting_tools\transcript.py "19:meeting_...@thread.v2" --format vtt
+python meeting_tools\transcript.py "19:meeting_...@thread.v2" --format docx   # requires python-docx
+```
+
+Transcripts are saved under `saved_transcripts/` with the meeting subject as the filename prefix.
 
 
 ### Development
