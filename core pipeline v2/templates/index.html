@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Tools API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .flexible-search {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+        }
+        .flexible-search h2 {
+            color: #0066cc;
+        }
+        .json-input {
+            height: 100px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Email Tools API Tester</h1>
+        
+        <!-- Health Check -->
+        <div class="section">
+            <h2>🏥 Health Check</h2>
+            <button onclick="checkHealth()">Check API Health</button>
+            <div id="healthResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Search by Sender -->
+        <div class="section">
+            <h2>👤 Search by Sender</h2>
+            <input type="text" id="senderInput" placeholder="Enter sender email or name (e.g., john@example.com)" />
+            <button onclick="searchBySender()">Search</button>
+            <div id="senderResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Search by Subject -->
+        <div class="section">
+            <h2>📝 Search by Subject</h2>
+            <input type="text" id="subjectInput" placeholder="Enter subject keywords (e.g., meeting)" />
+            <button onclick="searchBySubject()">Search</button>
+            <div id="subjectResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Search by Email ID -->
+        <div class="section">
+            <h2>🆔 Search by Email ID</h2>
+            <input type="text" id="emailIdInput" placeholder="Enter email ID" />
+            <button onclick="searchById()">Search</button>
+            <div id="idResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Flexible Search -->
+        <div class="section flexible-search">
+            <h2>🔍 Flexible Search (POST)</h2>
+            <textarea id="jsonInput" class="json-input" placeholder='{
+  "search_type": "sender",
+  "query": "john@example.com"
+}
+
+Available search_types: "sender", "id", "subject"'></textarea>
+            <button onclick="flexibleSearch()">Search</button>
+            <div id="flexibleResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isError ? 'error' : 'success'}`;
+            element.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result loading';
+            element.textContent = 'Loading...';
+        }
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { status: response.status, data };
+            } catch (error) {
+                return { status: 0, data: { error: error.message } };
+            }
+        }
+
+        async function checkHealth() {
+            showLoading('healthResult');
+            const result = await makeRequest(`${API_BASE}/api/health`);
+            showResult('healthResult', result.data, result.status !== 200);
+        }
+
+        async function searchBySender() {
+            const sender = document.getElementById('senderInput').value.trim();
+            if (!sender) {
+                showResult('senderResult', 'Please enter a sender email or name', true);
+                return;
+            }
+
+            showLoading('senderResult');
+            const result = await makeRequest(`${API_BASE}/api/emails/sender/${encodeURIComponent(sender)}`);
+            showResult('senderResult', result.data, result.status !== 200);
+        }
+
+        async function searchBySubject() {
+            const subject = document.getElementById('subjectInput').value.trim();
+            if (!subject) {
+                showResult('subjectResult', 'Please enter a subject keyword', true);
+                return;
+            }
+
+            showLoading('subjectResult');
+            const result = await makeRequest(`${API_BASE}/api/emails/subject/${encodeURIComponent(subject)}`);
+            showResult('subjectResult', result.data, result.status !== 200);
+        }
+
+        async function searchById() {
+            const emailId = document.getElementById('emailIdInput').value.trim();
+            if (!emailId) {
+                showResult('idResult', 'Please enter an email ID', true);
+                return;
+            }
+
+            showLoading('idResult');
+            const result = await makeRequest(`${API_BASE}/api/emails/id/${encodeURIComponent(emailId)}`);
+            showResult('idResult', result.data, result.status !== 200);
+        }
+
+        async function flexibleSearch() {
+            const jsonText = document.getElementById('jsonInput').value.trim();
+            if (!jsonText) {
+                showResult('flexibleResult', 'Please enter JSON data', true);
+                return;
+            }
+
+            let jsonData;
+            try {
+                jsonData = JSON.parse(jsonText);
+            } catch (error) {
+                showResult('flexibleResult', 'Invalid JSON format', true);
+                return;
+            }
+
+            showLoading('flexibleResult');
+            const result = await makeRequest(`${API_BASE}/api/emails/search`, {
+                method: 'POST',
+                body: JSON.stringify(jsonData)
+            });
+            showResult('flexibleResult', result.data, result.status !== 200);
+        }
+
+        // Auto-check health on page load
+        window.onload = function() {
+            checkHealth();
+        };
+    </script>
+</body>
+</html>
