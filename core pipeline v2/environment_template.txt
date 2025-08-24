@@ -1,0 +1,31 @@
+# Microsoft Graph API Configuration for Application Permissions
+CLIENT_ID=your_client_id_here
+TENANT_ID=your_tenant_id_here
+CLIENT_SECRET=your_client_secret_here
+
+# Default User ID for Application Permissions
+DEFAULT_USER_ID=your_email@domain.com
+
+# AIXplain Configuration (for intelligent query routing)
+AIXPLAIN_API_KEY=your_aixplain_api_key_here
+
+# Optional: Alternative API key name for AIXPLAIN
+TEAM_API_KEY=your_team_api_key_here
+
+# Optional: Additional configuration
+# Set to 'true' to enable debug logging
+DEBUG=false
+
+# Optional: API timeout settings (in seconds)
+API_TIMEOUT=30
+
+# Optional: Cache settings
+EMAIL_CACHE_LIMIT=100
+CACHE_EXPIRY_HOURS=24
+
+DEBUG_AUTH=1
+
+# Graph API Username/Password for delegated permissions (may require MFA)
+GRAPH_USERNAME=your_username@domain.com
+GRAPH_PASSWORD=your_password_here
+DELEGATED_SCOPES=Files.Read.All
