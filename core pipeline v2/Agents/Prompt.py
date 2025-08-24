@@ -1,5 +1,5 @@
 import os
-os.environ["AIXPLAIN_API_KEY"] = "170c55f035bc7ef663f0144ee120f5719b7fee72e8681016b5223e4bf2c42925"
+os.environ["AIXPLAIN_API_KEY"] = "your_aixplain_api_key_here"
 
 from aixplain.factories import DatasetFactory, ModelFactory,AgentFactory
 from aixplain.modules.agent.output_format import OutputFormat
