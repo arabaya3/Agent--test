@@ -1,0 +1,41 @@
+# Core Pipeline Requirements
+# Microsoft Graph API and Authentication
+requests>=2.31.0
+msal>=1.24.0
+python-dotenv>=1.0.0
+
+# File Processing and Text Extraction
+python-docx>=0.8.11
+openpyxl>=3.1.2
+python-pptx>=0.6.21
+pypdf>=3.17.0
+pdfminer.six>=20221105
+
+# Data Processing and Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Web Framework (if needed for API endpoints)
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Utilities
+pathlib2>=2.3.7
+lxml>=4.9.0
+Pillow>=10.0.0
+
+# Optional: For enhanced text processing
+nltk>=3.8.1
+spacy>=3.7.0
+
+# Optional: For data visualization (if needed)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Optional: For machine learning features
+scikit-learn>=1.3.0
+
+# Development and Testing
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
