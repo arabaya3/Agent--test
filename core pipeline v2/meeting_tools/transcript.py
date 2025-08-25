@@ -7,7 +7,7 @@ def get_meeting_transcript(meeting_value: str, fmt: str = "vtt") -> str:
         fmt: Output format ("vtt" or "docx")
     
     Returns:
-        Formatted string with transcript info or error message
+        Transcript content as a string (VTT text) or error message
     """
     import argparse
     import os
@@ -189,13 +189,16 @@ def get_meeting_transcript(meeting_value: str, fmt: str = "vtt") -> str:
             sys.exit(1)
 
         vtt_bytes, _ = get_transcript_content(meeting_id, token, fmt)
+        text = vtt_bytes.decode("utf-8", errors="replace")
 
         if fmt == "vtt":
             out_name = f"{meeting_id}_transcript.vtt"
             with open(out_name, "wb") as f:
                 f.write(vtt_bytes)
             print(f"Saved transcript to {out_name}")
-            return out_name
+            print("\n--- Transcript (VTT) ---\n")
+            print(text)
+            return text
 
         # DOCX conversion path
         try:
@@ -206,20 +209,24 @@ def get_meeting_transcript(meeting_value: str, fmt: str = "vtt") -> str:
                 f.write(vtt_bytes)
             print("python-docx is not installed. Saved VTT instead. Install with: pip install python-docx")
             print(f"Saved transcript to {out_name}")
-            return out_name
+            print("\n--- Transcript (VTT) ---\n")
+            print(text)
+            return text
 
-        text = vtt_bytes.decode("utf-8", errors="replace")
+        # 'text' computed above from vtt_bytes
         doc = Document()
         doc.add_heading("Teams Meeting Transcript", level=1)
         doc.add_paragraph(text)
         out_name = f"{meeting_id}_transcript.docx"
         doc.save(out_name)
         print(f"Saved transcript to {out_name}")
-        return out_name
+        print("\n--- Transcript (VTT) ---\n")
+        print(text)
+        return text
 
     try:
         result = run_tool(meeting_value, fmt)
-        return f"Transcript saved successfully to: {result}"
+        return result
     except Exception as e:
         error_msg = f"Error retrieving transcript: {e}"
         print(error_msg)
