@@ -81,6 +81,11 @@ def retrieve_meetings_by_date(date: str, user_name: str | None = None) -> str:
         "Content-Type": "application/json"
     }
 
+    # Determine user principal name (UPN)
+    if not user_name:
+        # Prefer GRAPH_USERNAME, then fallback to DEFAULT_USER_ID
+        user_name = os.getenv("GRAPH_USERNAME") or os.getenv("DEFAULT_USER_ID")
+
     # Build URL using user_name (UPN) if provided
     if user_name:
         url = (

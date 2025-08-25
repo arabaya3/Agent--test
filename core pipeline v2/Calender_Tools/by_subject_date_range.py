@@ -90,7 +90,7 @@ def run_by_subject_date_range() -> str:
         lines.append("Error: End date is required")
         return "\n".join(lines)
 
-    user_id = os.getenv("DEFAULT_USER_ID")
+    user_id = os.getenv("GRAPH_USERNAME") or os.getenv("DEFAULT_USER_ID")
     if not user_id:
         lines.append("Error: DEFAULT_USER_ID not set in environment variables")
         return "\n".join(lines)
