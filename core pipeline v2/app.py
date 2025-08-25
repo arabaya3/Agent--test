@@ -487,4 +487,4 @@ if __name__ == '__main__':
     print("\nServer will start on http://localhost:5000")
     print("Web interface available at: http://localhost:5000")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8000)
