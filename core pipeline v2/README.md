@@ -49,13 +49,14 @@ email-agent-system/
    ```
 
 3. **Set up environment variables**:
-   Create a `.env` file with your Microsoft Graph API credentials:
+   Create a `.env` file with your Microsoft Graph API credentials and the public base URL (for local or ngrok):
    ```
    CLIENT_ID=your_client_id
    TENANT_ID=your_tenant_id
    CLIENT_SECRET=your_client_secret
    DEFAULT_USER_ID=your_email@domain.com
    AIXPLAIN_API_KEY=your_aixplain_api_key
+   PUBLIC_BASE_URL=http://localhost:5000
    ```
 
 ## Environment Variables
@@ -101,13 +102,25 @@ python test_email_agent.py
 python test_email_agent.py --interactive
 ```
 
+### Exposing the API via ngrok (optional)
+
+```bash
+ngrok http 5000
+```
+
+Copy the HTTPS forwarding URL and set it in `.env` as `PUBLIC_BASE_URL`. Example:
+
+```
+PUBLIC_BASE_URL=https://abcd1234.ngrok-free.app
+```
+
 ### Deploying the AIXplain Agent
 
 ```bash
 python Agents/Prompt.py
 ```
 
-This deploys the "Email Search Agent v2" to your AIXplain platform.
+This deploys the "Email Search Agent v21" to your AIXplain platform. The agent will call `{PUBLIC_BASE_URL}`.
 
 ## API Endpoints
 

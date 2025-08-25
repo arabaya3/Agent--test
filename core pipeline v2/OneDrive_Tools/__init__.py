@@ -8,7 +8,7 @@ This package contains tools for working with OneDrive and SharePoint files:
 """
 
 from .list_onedrive_files import list_onedrive_files
-from .list_shared_files import list_shared_files
+from .list_shared_files import list_shared_files_delegated_only
 from .retrieve_file_by_name import retrieve_file_by_name
 
-__all__ = ['list_onedrive_files', 'list_shared_files', 'retrieve_file_by_name']
+__all__ = ['list_onedrive_files', 'list_shared_files_delegated_only', 'retrieve_file_by_name']

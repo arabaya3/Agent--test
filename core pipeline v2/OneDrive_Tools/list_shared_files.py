@@ -49,7 +49,8 @@ def list_shared_files_delegated_only(data: Dict[str, Any]) -> str:
         if env_scopes:
             scopes = [s for s in env_scopes.replace(",", " ").split() if s]
         else:
-            scopes = ["Files.Read", "offline_access"]
+            # Add User.Read to satisfy some tenants/policies for ROPC
+            scopes = ["User.Read", "Files.Read.All", "offline_access"]
 
         if not cache_path:
             token_cache, cache_file = None, None
@@ -87,7 +88,7 @@ def list_shared_files_delegated_only(data: Dict[str, Any]) -> str:
             try:
                 result.append("Attempting username/password authentication...\n")
                 result_auth = app.acquire_token_by_username_password(username=username, password=password, scopes=scopes)
-                if "access_token" in result_auth:
+                if isinstance(result_auth, dict) and "access_token" in result_auth:
                     if token_cache and cache_file:
                         try:
                             cache_file.write_text(token_cache.serialize(), encoding="utf-8")
@@ -96,7 +97,38 @@ def list_shared_files_delegated_only(data: Dict[str, Any]) -> str:
                     result.append("Username/password authentication successful!\n")
                     access_token = result_auth["access_token"]
                 else:
-                    raise Exception("Username/password authentication failed")
+                    # If ROPC fails (often due to MFA), try Device Code flow
+                    error_msg = result_auth.get("error_description") or result_auth.get("error") or "Username/password authentication failed"
+                    result.append(f"ROPC failed: {error_msg}\n")
+                    result.append("Falling back to Device Code flow...\n")
+                    flow = app.initiate_device_flow(scopes=scopes)
+                    if "user_code" not in flow:
+                        raise RuntimeError(f"Device code initiation failed: {flow}")
+                    result.append(flow.get("message", ""))
+                    result.append("\nWaiting for you to complete authentication in the browser...\n")
+                    result_auth = app.acquire_token_by_device_flow(flow)
+                    if isinstance(result_auth, dict) and "access_token" in result_auth:
+                        if token_cache and cache_file:
+                            try:
+                                cache_file.write_text(token_cache.serialize(), encoding="utf-8")
+                            except Exception:
+                                pass
+                        result.append("Device Code authentication successful!\n")
+                        access_token = result_auth["access_token"]
+                    else:
+                        # Surface MSAL error details to help diagnose
+                        error_msg = result_auth.get("error_description") or result_auth.get("error") or "Device code authentication failed"
+                        sub_error = result_auth.get("suberror") or result_auth.get("sub_error")
+                        correlation_id = result_auth.get("correlation_id") or result_auth.get("correlationId")
+                        trace_id = result_auth.get("trace_id") or result_auth.get("traceId")
+                        diagnostics = [f"MSAL error: {error_msg}"]
+                        if sub_error:
+                            diagnostics.append(f"suberror: {sub_error}")
+                        if correlation_id:
+                            diagnostics.append(f"correlation_id: {correlation_id}")
+                        if trace_id:
+                            diagnostics.append(f"trace_id: {trace_id}")
+                        raise RuntimeError("Authentication failed: " + "; ".join(diagnostics))
             except Exception as e:
                 raise RuntimeError(f"Authentication failed: {str(e)}")
         

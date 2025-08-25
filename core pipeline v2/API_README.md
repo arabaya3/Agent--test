@@ -27,12 +27,13 @@ A Flask-based REST API server that provides email search and retrieval capabilit
    ```
 
 2. **Set up environment variables**:
-   Create a `.env` file with your Microsoft Graph API credentials:
+   Create a `.env` file with your Microsoft Graph API credentials and public base URL for external access:
    ```
    CLIENT_ID=your_client_id
    TENANT_ID=your_tenant_id
    CLIENT_SECRET=your_client_secret
    DEFAULT_USER_ID=your_email@domain.com
+   PUBLIC_BASE_URL=http://localhost:5000
    ```
 
 ## Running the Server

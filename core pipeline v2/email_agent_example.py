@@ -7,8 +7,11 @@ from typing import Dict, List, Optional, Tuple
 
 class EmailAgent:
     
-    def __init__(self, base_url: str = "http://localhost:5000"):
-        self.base_url = base_url
+    def __init__(self, base_url: str = None):
+        import os
+        if base_url is None:
+            base_url = os.getenv("PUBLIC_BASE_URL", "https://1b988f973611.ngrok-free.app")
+        self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
     
